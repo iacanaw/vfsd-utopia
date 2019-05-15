@@ -7,14 +7,13 @@
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
+`include "atm_cell.sv"
+
 typedef virtual Utopia.TB_Rx vUtopiaRx;
 
-class Driver extends uvm_driver;
-	`uvm_component_utils(Driver)
+typedef class Driver;
 
-	virtual utopia_if uif;
-
-	class Driver_cbs;
+class Driver_cbs;
 		virtual task pre_tx(input Driver drv,
 			       input UNI_cell c,
 			       inout bit drop);
@@ -24,11 +23,16 @@ class Driver extends uvm_driver;
 			       input UNI_cell c);
 		endtask : post_tx
 	endclass : Driver_cbs
-	
+
+class Driver extends uvm_driver;
+	`uvm_component_utils(Driver)
+
+	virtual utopia_if uif;
+
 	mailbox gen2drv;	// For cells sent from generator
     event   drv2gen;	// Tell generator when I am done with cell
-    vUtopiaRx Rx;	// Virtual interface for transmitting cells
-    Driver_cbs cbsq[$];  // Queue of callback objects
+    vUtopiaRx Rx;		// Virtual interface for transmitting cells
+    Driver_cbs cbsq[$]; // Queue of callback objects
     int PortID;
 
 
@@ -44,7 +48,7 @@ class Driver extends uvm_driver;
 
 	function void build_phase(uvm_phase phase);
 		super.build_phase(phase);
-		void'(uvm_resource_db#(virtual utopia_if)::read_by_name(.scope("ifs"), .name("utopia_if"), .val(vif)));
+		void'(uvm_resource_db#(virtual utopia_if)::read_by_name(.scope("ifs"), .name("utopia_if"), .val(uif)));
 	endfunction: build_phase
 
 	task run_phase(uvm_phase phase);
