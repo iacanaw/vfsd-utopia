@@ -28,7 +28,7 @@
 parameter NumRx = 4;
 parameter NumTx = 4;
 
-`include "utopia.sv"
+`include "../src/tb/utopia.sv"
 
 module top;
   logic rst;

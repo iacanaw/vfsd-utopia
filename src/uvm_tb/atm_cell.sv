@@ -1,43 +1,24 @@
-/**********************************************************************
- * Definition of an ATM cell
- *
- * Author: Chris Spear
- * Revision: 1.01
- * Last modified: 8/2/2011
- *
- * (c) Copyright 2008-2011, Chris Spear, Greg Tumbush. *** ALL RIGHTS RESERVED ***
- * http://chris.spear.net
- *
- *  This source file may be used and distributed without restriction
- *  provided that this copyright statement is not removed from the file
- *  and that any derivative work contains this copyright notice.
- *
- * Used with permission in the book, "SystemVerilog for Verification"
- * By Chris Spear and Greg Tumbush
- * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
- *********************************************************************/
+import uvm_pkg::*;
+`include "uvm_macros.svh"
 
-`ifndef ATM_CELL__SV
-`define ATM_CELL__SV
+`include "definitions.sv"
 
-`include "../src/tb/definitions.sv"
+virtual class BaseTr extends uvm_sequence_item;
+   static int count;  // Number of instance created
+   int id;            // Unique transaction id
 
-virtual class BaseTr;
-  static int count;  // Number of instance created
-  int id;            // Unique transaction id
-
-  function new();
-    id = count++;
-  endfunction
+   function new(string name = "");
+      super.new(name);
+      id = count++;
+   endfunction
 
   // "pure" methods supported in VCS 2008.03 and later
-  pure virtual function bit compare(input BaseTr to);
-  pure virtual function BaseTr copy(input BaseTr to=null);
-  pure virtual function void display(input string prefix="");
-endclass // BaseTr
+   pure virtual function bit compare(input BaseTr to);
+   pure virtual function BaseTr copy(input BaseTr to=null);
+   pure virtual function void display(input string prefix="");
+endclass : BaseTr// BaseTr
 
 typedef class NNI_cell;
-
 
 /////////////////////////////////////////////////////////////////////////////
 // UNI Cell Format
@@ -56,7 +37,7 @@ class UNI_cell extends BaseTr;
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
 
-   extern function new();
+   extern function new(string name = "");
    extern function void post_randomize();
    extern virtual function bit compare(input BaseTr to);
    extern virtual function void display(input string prefix="");
@@ -71,7 +52,8 @@ endclass : UNI_cell
 
 
 //-----------------------------------------------------------------------------
-function UNI_cell::new();
+function UNI_cell::new(string name = "");
+   super.new(name);
    if (syndrome_not_generated)
      generate_syndrome();
 endfunction : new
@@ -221,7 +203,7 @@ class NNI_cell extends BaseTr;
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
 
-   extern function new();
+   extern function new(string name = "");
    extern function void post_randomize();
    extern virtual function bit compare(input BaseTr to);
    extern virtual function void display(input string prefix="");
@@ -234,7 +216,8 @@ class NNI_cell extends BaseTr;
 endclass : NNI_cell
 
 
-function NNI_cell::new();
+function NNI_cell::new(string name = "");
+   super.new(name);
    if (syndrome_not_generated)
      generate_syndrome();
 endfunction : new
@@ -334,6 +317,3 @@ function bit [7:0] NNI_cell::hec (bit [31:0] hdr);
    end
    hec = hec ^ 8'h55;
 endfunction : hec
-
-
-`endif // ATM_CELL__SV

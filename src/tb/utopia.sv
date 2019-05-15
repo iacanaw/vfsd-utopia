@@ -64,7 +64,7 @@
  * USE OF THIS CODE.
  *********************************************************************/
 
-`include "definitions.sv"  // include external definitions
+`include "../src/tb/definitions.sv"  // include external definitions
 
 interface Utopia;
   parameter int IfWidth = 8;

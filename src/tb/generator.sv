@@ -20,7 +20,7 @@
 `ifndef GENERATOR__SV
  `define GENERATOR__SV
 
-`include "atm_cell.sv"
+`include "../src/tb/atm_cell.sv"
 
 
 /////////////////////////////////////////////////////////////////////////////

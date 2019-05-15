@@ -21,14 +21,14 @@
 `ifndef ENVIRONMENT__SV
 `define ENVIRONMENT__SV
 
-`include "generator.sv"
-`include "driver.sv"
-`include "monitor.sv"
-`include "config.sv"
-`include "scoreboard.sv"
-`include "coverage.sv"
-`include "cpu_ifc.sv"
-`include "cpu_driver.sv"
+`include "../src/tb/generator.sv"
+`include "../src/tb/driver.sv"
+`include "../src/tb/monitor.sv"
+`include "../src/tb/config.sv"
+`include "../src/tb/scoreboard.sv"
+`include "../src/tb/coverage.sv"
+`include "../src/tb/cpu_ifc.sv"
+`include "../src/tb/cpu_driver.sv"
 
 /////////////////////////////////////////////////////////
 // Call scoreboard from Driver using callbacks

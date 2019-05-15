@@ -68,9 +68,9 @@
 // file that is included by 10.00.00_example_top.sv
 //`include "methods.sv"
 
-`include "definitions.sv"  // include external definitions
+`include "../src/tb/definitions.sv"  // include external definitions
 
-`include "environment.sv"
+`include "../src/tb/environment.sv"
   Environment env;
 
 program automatic test

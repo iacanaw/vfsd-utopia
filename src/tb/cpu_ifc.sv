@@ -68,7 +68,7 @@
 `define CPU_IFC__SV 
 
 
-`include "definitions.sv"  // include external definitions
+`include "../src/tb/definitions.sv"  // include external definitions
 
 interface cpu_ifc;
   logic        BusMode;

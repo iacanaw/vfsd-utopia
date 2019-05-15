@@ -20,8 +20,8 @@
 `ifndef SCOREBOARD__SV
  `define SCOREBOARD__SV
 
-`include "config.sv"
-`include "atm_cell.sv"
+`include "../src/tb/config.sv"
+`include "../src/tb/atm_cell.sv"
 
 class Expect_cells;
    NNI_cell q[$];
@@ -66,9 +66,9 @@ function void Scoreboard::save_expected(UNI_cell ucell);
    // Find all Tx ports where this cell will be forwarded
    for (int i=0; i<cfg.numTx; i++)
      if (CellCfg.FWD[i]) begin
-	expect_cells[i].q.push_back(ncell); // Save cell in this forward queue
-	expect_cells[i].iexpect++;
-	iexpect++;
+		expect_cells[i].q.push_back(ncell); // Save cell in this forward queue
+		expect_cells[i].iexpect++;
+		iexpect++;
      end
 endfunction : save_expected
 

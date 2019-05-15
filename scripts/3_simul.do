@@ -11,5 +11,5 @@ do 2_wave.do
 run 1000 ms
 
 #quit vsim
-quit -sim
-quit -f
+#quit -sim
+#quit -f
