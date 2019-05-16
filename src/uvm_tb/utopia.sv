@@ -31,7 +31,7 @@ interface Utopia;
     input clk_in, clk_out, ATMcell, valid, reset, en, ready;
     output data, soc, clav;
   endclocking : cbr
-  modport TB_Rx (clocking cbr)
+  modport TB_Rx (clocking cbr);
 
   clocking cbt @(negedge clk_out);
     input  clk_out, clk_in, ATMcell, soc, en, valid, reset, data, ready;

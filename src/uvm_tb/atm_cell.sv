@@ -4,6 +4,9 @@ import uvm_pkg::*;
 `include "definitions.sv"
 
 virtual class BaseTr extends uvm_sequence_item;
+
+   `uvm_object_utils(BaseTr)
+
    static int count;  // Number of instance created
    int id;            // Unique transaction id
 
@@ -76,7 +79,7 @@ function bit UNI_cell::compare(input BaseTr to);
    if (this.VPI != other.VPI)         return 0;
    if (this.VCI != other.VCI)         return 0;
    if (this.CLP != other.CLP)         return 0;
-   if (this.PT  != other.PT)           return 0;
+   if (this.PT  != other.PT)          return 0;
    if (this.HEC != other.HEC)         return 0;
    if (this.Payload != other.Payload) return 0;
    return 1;
