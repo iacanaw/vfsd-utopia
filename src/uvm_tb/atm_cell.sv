@@ -16,8 +16,8 @@ virtual class BaseTr extends uvm_sequence_item;
    endfunction
 
   // "pure" methods supported in VCS 2008.03 and later
-   pure virtual function bit compare(input BaseTr to);
-   pure virtual function BaseTr copy(input BaseTr to=null);
+   pure virtual function bit compare(input uvm_object to, uvm_comparer comparer);
+   pure virtual function BaseTr copy(input uvm_object to=null);
    pure virtual function void display(input string prefix="");
 endclass : BaseTr// BaseTr
 
@@ -42,10 +42,11 @@ class UNI_cell extends BaseTr;
 
    extern function new(string name = "");
    extern function void post_randomize();
-   extern virtual function bit compare(input BaseTr to);
+   extern virtual function bit compare(input uvm_object to, uvm_comparer comparer);
    extern virtual function void display(input string prefix="");
-   extern virtual function void copy_data(input UNI_cell copy);
-   extern virtual function BaseTr copy(input BaseTr to=null);
+   extern virtual function void do_record(uvm_recorder recorder);
+   //extern virtual function void copy_data(input UNI_cell copy);
+   extern virtual function BaseTr copy(input uvm_object to=null);
    extern virtual function void pack(output ATMCellType to);
    extern virtual function void unpack(input ATMCellType from);
    extern function NNI_cell to_NNI();
@@ -63,6 +64,19 @@ endfunction : new
 
 
 //-----------------------------------------------------------------------------
+function void UNI_cell::do_record(uvm_recorder recorder);
+  super.do_record(recorder);
+  `uvm_record_attribute(recorder.tr_handle, "GFC",GFC)
+  `uvm_record_attribute(recorder.tr_handle, "VPI",VPI)
+  `uvm_record_attribute(recorder.tr_handle, "VCI",VCI)
+  `uvm_record_attribute(recorder.tr_handle, "CLP",CLP)
+  `uvm_record_attribute(recorder.tr_handle, "PT",PT)
+  `uvm_record_attribute(recorder.tr_handle, "HEC",HEC)
+  `uvm_record_attribute(recorder.tr_handle, "Paylaod",Payload)
+endfunction : do_record
+
+
+//-----------------------------------------------------------------------------
 // Compute the HEC value after all other data has been chosen
 function void UNI_cell::post_randomize();
    HEC = hec({GFC, VPI, VCI, CLP, PT});
@@ -71,18 +85,19 @@ endfunction : post_randomize
 
 
 //-----------------------------------------------------------------------------
-
-function bit UNI_cell::compare(input BaseTr to);
+function bit UNI_cell::compare(input uvm_object to, uvm_comparer comparer);
    UNI_cell other;
    $cast(other, to);
-   if (this.GFC != other.GFC)         return 0;
-   if (this.VPI != other.VPI)         return 0;
-   if (this.VCI != other.VCI)         return 0;
-   if (this.CLP != other.CLP)         return 0;
-   if (this.PT  != other.PT)          return 0;
-   if (this.HEC != other.HEC)         return 0;
-   if (this.Payload != other.Payload) return 0;
-   return 1;
+
+   if ( ! $cast(other, to) ) return 0;
+   return (super.do_compare(to, comparer) &&
+            this.GFC == other.GFC &&
+            this.VPI == other.VPI &&
+            this.VCI == other.VCI &&
+            this.CLP == other.CLP &&
+            this.PT  == other.PT  &&
+            this.HEC == other.HEC && 
+            this.Payload == other.Payload);
 endfunction : compare
 
 
@@ -100,7 +115,7 @@ function void UNI_cell::display(input string prefix);
    $display;
 endfunction : display
 
-
+/*
 function void UNI_cell::copy_data(input UNI_cell copy);
    copy.GFC     = this.GFC;
    copy.VPI     = this.VPI;
@@ -110,13 +125,24 @@ function void UNI_cell::copy_data(input UNI_cell copy);
    copy.HEC     = this.HEC;
    copy.Payload = this.Payload;
 endfunction : copy_data
+*/
 
-
-function BaseTr UNI_cell::copy(input BaseTr to);
+function BaseTr UNI_cell::copy(input uvm_object to=null);
    UNI_cell dst;
    if (to == null) dst = new();
-   else            $cast(dst, to);
-   copy_data(dst);
+   if ( ! $cast( dst, to ) ) begin
+     `uvm_error( get_name(), "'to' is not a UNI_cell" )
+     return null;
+   end
+
+   super.do_copy( to );
+   dst.GFC     = this.GFC;
+   dst.VPI     = this.VPI;
+   dst.VCI     = this.VCI;
+   dst.CLP     = this.CLP;
+   dst.PT      = this.PT;
+   dst.HEC     = this.HEC;
+   dst.Payload = this.Payload;
    return dst;
 endfunction : copy
 
@@ -208,10 +234,11 @@ class NNI_cell extends BaseTr;
 
    extern function new(string name = "");
    extern function void post_randomize();
-   extern virtual function bit compare(input BaseTr to);
+   extern virtual function bit compare(input uvm_object to, uvm_comparer comparer);
    extern virtual function void display(input string prefix="");
-   extern virtual function void copy_data(input NNI_cell copy);
-   extern virtual function BaseTr copy(input BaseTr to=null);
+   //extern virtual function void copy_data(input NNI_cell copy);
+   extern virtual function void do_record(uvm_recorder recorder);
+   extern virtual function BaseTr copy(input uvm_object to=null);
    extern virtual function void pack(output ATMCellType to);
    extern virtual function void unpack(input ATMCellType from);
    extern function void generate_syndrome();
@@ -225,6 +252,16 @@ function NNI_cell::new(string name = "");
      generate_syndrome();
 endfunction : new
 
+function void NNI_cell::do_record(uvm_recorder recorder);
+  super.do_record(recorder);
+
+  `uvm_record_attribute(recorder.tr_handle, "VPI",VPI)
+  `uvm_record_attribute(recorder.tr_handle, "VCI",VCI)
+  `uvm_record_attribute(recorder.tr_handle, "CLP",CLP)
+  `uvm_record_attribute(recorder.tr_handle, "PT",PT)
+  `uvm_record_attribute(recorder.tr_handle, "HEC",HEC)
+  `uvm_record_attribute(recorder.tr_handle, "Paylaod",Payload)
+endfunction : do_record
 
 //-----------------------------------------------------------------------------
 // Compute the HEC value after all other data has been chosen
@@ -233,16 +270,17 @@ function void NNI_cell::post_randomize();
 endfunction : post_randomize
 
 
-function bit NNI_cell::compare(input BaseTr to);
+function bit NNI_cell::compare(input uvm_object to, uvm_comparer comparer);
    NNI_cell other;
-   $cast(other, to);
-   if (this.VPI != other.VPI)         return 0;
-   if (this.VCI != other.VCI)         return 0;
-   if (this.CLP != other.CLP)         return 0;
-   if (this.PT  != other.PT)          return 0;
-   if (this.HEC != other.HEC)         return 0;
-   if (this.Payload != other.Payload) return 0;
-   return 1;
+   if ( ! $cast(other, to) ) return 0;
+
+   return (super.do_compare(to, comparer) &&
+            this.VPI == other.VPI &&
+            this.VCI == other.VCI &&
+            this.CLP == other.CLP &&
+            this.PT  == other.PT  &&
+            this.HEC == other.HEC && 
+            this.Payload == other.Payload);
 endfunction : compare
 
 
@@ -258,6 +296,7 @@ function void NNI_cell::display(input string prefix);
    $display;
 endfunction : display
 
+/*
 function void NNI_cell::copy_data(input NNI_cell copy);
    copy.VPI     = this.VPI;
    copy.VCI     = this.VCI;
@@ -266,12 +305,23 @@ function void NNI_cell::copy_data(input NNI_cell copy);
    copy.HEC     = this.HEC;
    copy.Payload = this.Payload;
 endfunction : copy_data
+*/
 
-function BaseTr NNI_cell::copy(input BaseTr to);
+function BaseTr NNI_cell::copy(input uvm_object to);
    NNI_cell dst;
    if (to == null) dst = new();
-   else            $cast(dst, to);
-   copy_data(dst);
+   if ( ! $cast( dst, to ) ) begin
+     `uvm_error( get_name(), "'to' is not a NNI_cell" )
+     return null;
+   end
+
+   super.do_copy( to );
+   dst.VPI     = this.VPI;
+   dst.VCI     = this.VCI;
+   dst.CLP     = this.CLP;
+   dst.PT      = this.PT;
+   dst.HEC     = this.HEC;
+   dst.Payload = this.Payload;
    return dst;
 endfunction : copy
 
