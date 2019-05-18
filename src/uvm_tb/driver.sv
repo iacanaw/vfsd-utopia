@@ -24,8 +24,10 @@ class Driver_cbs;
 		endtask : post_tx
 	endclass : Driver_cbs
 
-class Driver extends uvm_driver;
+class Driver extends uvm_driver #(BaseTr);
 	`uvm_component_utils(Driver)
+
+	uvm_analysis_port #(BaseTr) aport;
 
 	virtual utopia_if uif;
 
@@ -47,6 +49,7 @@ class Driver extends uvm_driver;
 	endfunction: new
 
 	function void build_phase(uvm_phase phase);
+		aport = new("aport", this);
 		super.build_phase(phase);
 		void'(uvm_resource_db#(virtual utopia_if)::read_by_name(.scope("ifs"), .name("utopia_if"), .val(uif)));
 	endfunction: build_phase

@@ -22,6 +22,8 @@ class Monitor extends uvm_monitor;
 
    `uvm_component_utils(Monitor)
 
+   uvm_analysis_port #(BaseTr) aport;
+
    //`uvm_analysis_port#(transation_utopia) monitor_port;
 
    virtual utopia_if uif;
@@ -64,6 +66,7 @@ endfunction: build_phase
 //---------------------------------------------------------------------------
 task Monitor::run_phase(uvm_phase phase);
    NNI_cell c;
+   aport = new("aport", this); 
    
    forever begin
       receive(c);
