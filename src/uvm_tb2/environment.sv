@@ -16,17 +16,20 @@
  * By Chris Spear and Greg Tumbush
  * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
  *********************************************************************/
-`include "../src/uvm_tb/definitions.sv"
-`include "../src/uvm_tb/generator.sv"
-`include "../src/uvm_tb/driver.sv"
-`include "../src/uvm_tb/monitor.sv"
-`include "../src/uvm_tb/config.sv"
-`include "../src/uvm_tb/scoreboard.sv"
-`include "../src/uvm_tb/coverage.sv"
-`include "../src/uvm_tb/cpu_ifc.sv"
-`include "../src/uvm_tb/cpu_driver.sv"
-import uvm_pkg::*;
-`include "uvm_macros.svh"
+
+
+`ifndef ENVIRONMENT__SV
+`define ENVIRONMENT__SV
+
+`include "../src/uvm_tb2/generator.sv"
+`include "../src/uvm_tb2/driver.sv"
+`include "../src/uvm_tb2/monitor.sv"
+`include "../src/uvm_tb2/config.sv"
+`include "../src/uvm_tb2/scoreboard.sv"
+`include "../src/uvm_tb2/coverage.sv"
+`include "../src/uvm_tb2/cpu_ifc.sv"
+`include "../src/uvm_tb2/cpu_driver.sv"
+
 /////////////////////////////////////////////////////////
 // Call scoreboard from Driver using callbacks
 /////////////////////////////////////////////////////////
@@ -84,10 +87,7 @@ endclass : Cov_Monitor_cbs
 
 
 /////////////////////////////////////////////////////////
-class Environment extends uvm_env;
-   `uvm_component_utils(Environment);
-
-
+class Environment extends ;
    UNI_generator gen[];
    mailbox gen2drv[];
    event   drv2gen[];
@@ -158,25 +158,24 @@ endfunction : gen_cfg
 //---------------------------------------------------------------------------
 function void Environment::build();
 
-   cpu = new(mif, cfg);
+   cpu = new(mif, cfg, "cpu_driver", this);
 
    gen = new[numRx];
    drv = new[numRx];
    gen2drv = new[numRx];
    drv2gen = new[numRx];
-   scb = new("scoreboard", this, cfg);
+   scb = new(cfg);
    cov = new();
    
    foreach(gen[i]) begin
       gen2drv[i] = new();
       gen[i] = new(gen2drv[i], drv2gen[i], cfg.cells_per_chan[i], i);
-      //(string name, uvm_component parent, input mailbox gen2drv, input event drv2gen, input vUtopiaRx Rx, input int PortID)
-      drv[i] = new("driver", this, gen2drv[i], drv2gen[i], Rx[i], i);
+      drv[i] = new(gen2drv[i], drv2gen[i], Rx[i], i);
    end
 
    mon = new[numTx];
    foreach (mon[i])
-     mon[i] = new("monitor", this, Tx[i], i);
+     mon[i] = new(Tx[i], i);
 
    // Connect the scoreboard with callbacks
    begin
@@ -252,3 +251,5 @@ function void Environment::wrap_up();
    scb.wrap_up;
    
 endfunction : wrap_up
+
+`endif // ENVIRONMENT__SV

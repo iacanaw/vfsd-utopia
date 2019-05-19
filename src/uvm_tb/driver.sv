@@ -7,7 +7,7 @@
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
-`include "atm_cell.sv"
+`include "../src/uvm_tb/atm_cell.sv"
 
 typedef virtual Utopia.TB_Rx vUtopiaRx;
 
@@ -38,7 +38,7 @@ class Driver extends uvm_driver #(BaseTr);
     int PortID;
 
 
-	function new(string name, uvm_component parent, input mailbox gen2drv, input event drv2gen, input vUtopiaRx Rx, input int PortID);
+	function new(string name="", uvm_component parent, input mailbox gen2drv, input event drv2gen, input vUtopiaRx Rx, input int PortID);
 		super.new(name, parent);
 
 		this.gen2drv = gen2drv;

@@ -1,30 +1,43 @@
+/**********************************************************************
+ * Definition of an ATM cell
+ *
+ * Author: Chris Spear
+ * Revision: 1.01
+ * Last modified: 8/2/2011
+ *
+ * (c) Copyright 2008-2011, Chris Spear, Greg Tumbush. *** ALL RIGHTS RESERVED ***
+ * http://chris.spear.net
+ *
+ *  This source file may be used and distributed without restriction
+ *  provided that this copyright statement is not removed from the file
+ *  and that any derivative work contains this copyright notice.
+ *
+ * Used with permission in the book, "SystemVerilog for Verification"
+ * By Chris Spear and Greg Tumbush
+ * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
+ *********************************************************************/
+
 `ifndef ATM_CELL__SV
 `define ATM_CELL__SV
 
-import uvm_pkg::*;
-`include "uvm_macros.svh"
+`include "../src/uvm_tb2/definitions.sv"
 
-`include "../src/uvm_tb/definitions.sv"
+virtual class BaseTr;
+  static int count;  // Number of instance created
+  int id;            // Unique transaction id
 
-virtual class BaseTr extends uvm_sequence_item;
-
-   `uvm_object_utils(BaseTr)
-
-   static int count;  // Number of instance created
-   int id;            // Unique transaction id
-
-   function new(string name = "");
-      super.new(name);
-      id = count++;
-   endfunction
+  function new();
+    id = count++;
+  endfunction
 
   // "pure" methods supported in VCS 2008.03 and later
-   pure virtual function bit compare(input uvm_object to);
-   pure virtual function BaseTr copy(input uvm_object to=null);
-   pure virtual function void display(input string prefix="");
-endclass : BaseTr// BaseTr
+  pure virtual function bit compare(input BaseTr to);
+  pure virtual function BaseTr copy(input BaseTr to=null);
+  pure virtual function void display(input string prefix="");
+endclass // BaseTr
 
 typedef class NNI_cell;
+
 
 /////////////////////////////////////////////////////////////////////////////
 // UNI Cell Format
@@ -43,13 +56,12 @@ class UNI_cell extends BaseTr;
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
 
-   extern function new(string name = "");
+   extern function new();
    extern function void post_randomize();
-   extern virtual function bit compare(input uvm_object to);
+   extern virtual function bit compare(input BaseTr to);
    extern virtual function void display(input string prefix="");
-   extern virtual function void do_record(uvm_recorder recorder);
-   //extern virtual function void copy_data(input UNI_cell copy);
-   extern virtual function BaseTr copy(input uvm_object to=null);
+   extern virtual function void copy_data(input UNI_cell copy);
+   extern virtual function BaseTr copy(input BaseTr to=null);
    extern virtual function void pack(output ATMCellType to);
    extern virtual function void unpack(input ATMCellType from);
    extern function NNI_cell to_NNI();
@@ -59,24 +71,10 @@ endclass : UNI_cell
 
 
 //-----------------------------------------------------------------------------
-function UNI_cell::new(string name = "");
-   super.new(name);
+function UNI_cell::new();
    if (syndrome_not_generated)
      generate_syndrome();
 endfunction : new
-
-
-//-----------------------------------------------------------------------------
-function void UNI_cell::do_record(uvm_recorder recorder);
-  super.do_record(recorder);
-  `uvm_record_attribute(recorder.tr_handle, "GFC",GFC)
-  `uvm_record_attribute(recorder.tr_handle, "VPI",VPI)
-  `uvm_record_attribute(recorder.tr_handle, "VCI",VCI)
-  `uvm_record_attribute(recorder.tr_handle, "CLP",CLP)
-  `uvm_record_attribute(recorder.tr_handle, "PT",PT)
-  `uvm_record_attribute(recorder.tr_handle, "HEC",HEC)
-  `uvm_record_attribute(recorder.tr_handle, "Paylaod",Payload)
-endfunction : do_record
 
 
 //-----------------------------------------------------------------------------
@@ -88,22 +86,22 @@ endfunction : post_randomize
 
 
 //-----------------------------------------------------------------------------
-function bit UNI_cell::compare(input uvm_object to);
+
+function bit UNI_cell::compare(input BaseTr to);
    UNI_cell other;
    $cast(other, to);
-
-   if ( ! $cast(other, to) ) return 0;
-   return ( this.GFC == other.GFC &&
-            this.VPI == other.VPI &&
-            this.VCI == other.VCI &&
-            this.CLP == other.CLP &&
-            this.PT  == other.PT  &&
-            this.HEC == other.HEC && 
-            this.Payload == other.Payload);
+   if (this.GFC != other.GFC)         return 0;
+   if (this.VPI != other.VPI)         return 0;
+   if (this.VCI != other.VCI)         return 0;
+   if (this.CLP != other.CLP)         return 0;
+   if (this.PT  != other.PT)           return 0;
+   if (this.HEC != other.HEC)         return 0;
+   if (this.Payload != other.Payload) return 0;
+   return 1;
 endfunction : compare
 
 
-function void UNI_cell::display(input string prefix = "");
+function void UNI_cell::display(input string prefix);
    ATMCellType p;
 
    $display("%sUNI id:%0d GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
@@ -117,7 +115,7 @@ function void UNI_cell::display(input string prefix = "");
    $display;
 endfunction : display
 
-/*
+
 function void UNI_cell::copy_data(input UNI_cell copy);
    copy.GFC     = this.GFC;
    copy.VPI     = this.VPI;
@@ -127,24 +125,13 @@ function void UNI_cell::copy_data(input UNI_cell copy);
    copy.HEC     = this.HEC;
    copy.Payload = this.Payload;
 endfunction : copy_data
-*/
 
-function BaseTr UNI_cell::copy(input uvm_object to=null);
+
+function BaseTr UNI_cell::copy(input BaseTr to);
    UNI_cell dst;
    if (to == null) dst = new();
-   if ( ! $cast( dst, to ) ) begin
-     `uvm_error( get_name(), "'to' is not a UNI_cell" )
-     return null;
-   end
-
-   super.do_copy( to );
-   dst.GFC     = this.GFC;
-   dst.VPI     = this.VPI;
-   dst.VCI     = this.VCI;
-   dst.CLP     = this.CLP;
-   dst.PT      = this.PT;
-   dst.HEC     = this.HEC;
-   dst.Payload = this.Payload;
+   else            $cast(dst, to);
+   copy_data(dst);
    return dst;
 endfunction : copy
 
@@ -234,13 +221,12 @@ class NNI_cell extends BaseTr;
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
 
-   extern function new(string name = "");
+   extern function new();
    extern function void post_randomize();
-   extern virtual function bit compare(input uvm_object to);
+   extern virtual function bit compare(input BaseTr to);
    extern virtual function void display(input string prefix="");
-   //extern virtual function void copy_data(input NNI_cell copy);
-   extern virtual function void do_record(uvm_recorder recorder);
-   extern virtual function BaseTr copy(input uvm_object to=null);
+   extern virtual function void copy_data(input NNI_cell copy);
+   extern virtual function BaseTr copy(input BaseTr to=null);
    extern virtual function void pack(output ATMCellType to);
    extern virtual function void unpack(input ATMCellType from);
    extern function void generate_syndrome();
@@ -248,22 +234,11 @@ class NNI_cell extends BaseTr;
 endclass : NNI_cell
 
 
-function NNI_cell::new(string name = "");
-   super.new(name);
+function NNI_cell::new();
    if (syndrome_not_generated)
      generate_syndrome();
 endfunction : new
 
-function void NNI_cell::do_record(uvm_recorder recorder);
-  super.do_record(recorder);
-
-  `uvm_record_attribute(recorder.tr_handle, "VPI",VPI)
-  `uvm_record_attribute(recorder.tr_handle, "VCI",VCI)
-  `uvm_record_attribute(recorder.tr_handle, "CLP",CLP)
-  `uvm_record_attribute(recorder.tr_handle, "PT",PT)
-  `uvm_record_attribute(recorder.tr_handle, "HEC",HEC)
-  `uvm_record_attribute(recorder.tr_handle, "Paylaod",Payload)
-endfunction : do_record
 
 //-----------------------------------------------------------------------------
 // Compute the HEC value after all other data has been chosen
@@ -272,20 +247,20 @@ function void NNI_cell::post_randomize();
 endfunction : post_randomize
 
 
-function bit NNI_cell::compare(input uvm_object to);
+function bit NNI_cell::compare(input BaseTr to);
    NNI_cell other;
-   if ( ! $cast(other, to) ) return 0;
-
-   return ( this.VPI == other.VPI &&
-            this.VCI == other.VCI &&
-            this.CLP == other.CLP &&
-            this.PT  == other.PT  &&
-            this.HEC == other.HEC && 
-            this.Payload == other.Payload);
+   $cast(other, to);
+   if (this.VPI != other.VPI)         return 0;
+   if (this.VCI != other.VCI)         return 0;
+   if (this.CLP != other.CLP)         return 0;
+   if (this.PT  != other.PT)          return 0;
+   if (this.HEC != other.HEC)         return 0;
+   if (this.Payload != other.Payload) return 0;
+   return 1;
 endfunction : compare
 
 
-function void NNI_cell::display(input string prefix = "");
+function void NNI_cell::display(input string prefix);
    ATMCellType p;
 
    $display("%sNNI id:%0d VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
@@ -297,7 +272,6 @@ function void NNI_cell::display(input string prefix = "");
    $display;
 endfunction : display
 
-/*
 function void NNI_cell::copy_data(input NNI_cell copy);
    copy.VPI     = this.VPI;
    copy.VCI     = this.VCI;
@@ -306,23 +280,12 @@ function void NNI_cell::copy_data(input NNI_cell copy);
    copy.HEC     = this.HEC;
    copy.Payload = this.Payload;
 endfunction : copy_data
-*/
 
-function BaseTr NNI_cell::copy(input uvm_object to = null);
+function BaseTr NNI_cell::copy(input BaseTr to);
    NNI_cell dst;
    if (to == null) dst = new();
-   if ( ! $cast( dst, to ) ) begin
-     `uvm_error( get_name(), "'to' is not a NNI_cell" )
-     return null;
-   end
-
-   super.do_copy( to );
-   dst.VPI     = this.VPI;
-   dst.VCI     = this.VCI;
-   dst.CLP     = this.CLP;
-   dst.PT      = this.PT;
-   dst.HEC     = this.HEC;
-   dst.Payload = this.Payload;
+   else            $cast(dst, to);
+   copy_data(dst);
    return dst;
 endfunction : copy
 
@@ -372,4 +335,5 @@ function bit [7:0] NNI_cell::hec (bit [31:0] hdr);
    hec = hec ^ 8'h55;
 endfunction : hec
 
-`endif
+
+`endif // ATM_CELL__SV

@@ -1,4 +1,4 @@
-`include "definitions.sv"  // include external definitions
+`include "../src/uvm_tb/definitions.sv"  // include external definitions
 
 interface Utopia;
   parameter int IfWidth = 8;

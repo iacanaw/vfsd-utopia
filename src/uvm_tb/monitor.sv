@@ -7,7 +7,7 @@
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
-`include "atm_cell.sv"
+`include "../src/uvm_tb/atm_cell.sv"
 
 typedef virtual Utopia.TB_Tx vUtopiaTx;
 

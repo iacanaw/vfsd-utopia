@@ -20,8 +20,7 @@
 
 `ifndef CONFIG__SV
 `define CONFIG__SV
-import uvm_pkg::*;
-`include "uvm_macros.svh"
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Configuration descriptor for ATM testbench
@@ -87,7 +86,7 @@ endfunction : new
 
 
 //---------------------------------------------------------------------------
-function void Config::display(input string prefix = "");
+function void Config::display(input string prefix);
     $write("%sConfig: numRx=%0d, numTx=%0d, nCells=%0d (", prefix, numRx, numTx, nCells);
    foreach (cells_per_chan[i])
       $write("%0d ", cells_per_chan[i]);

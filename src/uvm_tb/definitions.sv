@@ -1,3 +1,6 @@
+`ifndef _INCL_DEFINITIONS
+`define _INCL_DEFINITIONS
+
 `define TxPorts 4  // set number of transmit ports
 `define RxPorts 4  // set number of receive ports
 
@@ -53,3 +56,5 @@ typedef struct packed {
   bit [`TxPorts-1:0] FWD;
   bit [11:0] VPI;
 } CellCfgType;
+
+`endif

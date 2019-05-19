@@ -64,7 +64,7 @@
  * USE OF THIS CODE.
  *********************************************************************/
 
-`include "../src/tb/definitions.sv"  // include external definitions
+`include "../src/uvm_tb/definitions.sv"  // include external definitions
 
 module squat
   #(parameter int NumRx = 4, parameter int NumTx = 4)
