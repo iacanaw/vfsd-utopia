@@ -32,8 +32,9 @@ class Monitor extends uvm_monitor;
    Monitor_cbs cbsq[$]; // Queue of callback objects
    int PortID;
 
-   extern function new(string name, uvm_component parent, input vUtopiaTx Tx, input int PortID);
+   extern function new(string name, uvm_component parent);
    extern function void build_phase(uvm_phase phase);
+   extern function void initialize(input vUtopiaTx Tx, input int PortID);
    extern task run_phase(uvm_phase phase);
    extern task receive(output NNI_cell c);
 endclass : Monitor     
@@ -41,13 +42,8 @@ endclass : Monitor
 //---------------------------------------------------------------------------
 // new(): construct an object
 //---------------------------------------------------------------------------
-function Monitor::new(string name, uvm_component parent, input vUtopiaTx Tx, input int PortID);
+function Monitor::new(string name, uvm_component parent);
    super.new(name, parent);
-
-   //From old SV.Monitor
-   this.Tx     = Tx;
-   this.PortID = PortID;
-
 endfunction: new
 
 
@@ -56,10 +52,19 @@ endfunction: new
 //---------------------------------------------------------------------------
 function void Monitor::build_phase(uvm_phase phase);
    super.build_phase(phase);
+      //From old SV.Monitor
+   
    void'(uvm_resource_db#(virtual utopia_if )::read_by_name (.scope("ifs"), .name(" utopia_if "), .val(uif)));
    //monitor_port = new(.name(" monitor_port "), .parent(this));
 endfunction: build_phase
 
+//---------------------------------------------------------------------------
+// initialize(): 
+//---------------------------------------------------------------------------
+function void Monitor::initialize(input vUtopiaTx Tx, input int PortID);
+   this.Tx     = Tx;
+   this.PortID = PortID;
+endfunction: initialize
 
 //---------------------------------------------------------------------------
 // run(): Run the monitor

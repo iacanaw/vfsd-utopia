@@ -38,19 +38,16 @@ class Driver extends uvm_driver #(BaseTr);
     int PortID;
 
 
-	function new(string name="", uvm_component parent, input mailbox gen2drv, input event drv2gen, input vUtopiaRx Rx, input int PortID);
+	function new(string name="", uvm_component parent);
 		super.new(name, parent);
+	endfunction: new
 
+	function void build_phase(input mailbox gen2drv, input event drv2gen, input vUtopiaRx Rx, input int PortID);
+		aport = new("aport", this);
 		this.gen2drv = gen2drv;
    		this.drv2gen = drv2gen;
    		this.Rx      = Rx;
    		this.PortID  = PortID;
-
-	endfunction: new
-
-	function void build_phase(uvm_phase phase);
-		aport = new("aport", this);
-		super.build_phase(phase);
 		void'(uvm_resource_db#(virtual utopia_if)::read_by_name(.scope("ifs"), .name("utopia_if"), .val(uif)));
 	endfunction: build_phase
 

@@ -87,7 +87,6 @@ endclass : Cov_Monitor_cbs
 class Environment extends uvm_env;
    `uvm_component_utils(Environment);
 
-
    UNI_generator gen[];
    mailbox gen2drv[];
    event   drv2gen[];
@@ -157,7 +156,6 @@ endfunction : gen_cfg
 // This prevents the bug when you use a null handle
 //---------------------------------------------------------------------------
 function void Environment::build();
-
    cpu = new(mif, cfg);
 
    gen = new[numRx];
@@ -170,13 +168,15 @@ function void Environment::build();
    foreach(gen[i]) begin
       gen2drv[i] = new();
       gen[i] = new(gen2drv[i], drv2gen[i], cfg.cells_per_chan[i], i);
-      //(string name, uvm_component parent, input mailbox gen2drv, input event drv2gen, input vUtopiaRx Rx, input int PortID)
-      drv[i] = new("driver", this, gen2drv[i], drv2gen[i], Rx[i], i);
+      drv[i] = new("driver", this);
+      drv[i].build_phase(gen2drv[i], drv2gen[i], Rx[i], i);
    end
 
    mon = new[numTx];
-   foreach (mon[i])
-     mon[i] = new("monitor", this, Tx[i], i);
+   foreach (mon[i]) begin
+      mon[i] = new("monitor", this);
+      mon[i].initialize(Tx[i], i);
+   end
 
    // Connect the scoreboard with callbacks
    begin
