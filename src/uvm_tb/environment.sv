@@ -87,39 +87,30 @@ endclass : Cov_Monitor_cbs
 class Environment extends uvm_env;
    `uvm_component_utils(Environment);
 
-   UNI_generator gen[];
-   mailbox gen2drv[];
-   event   drv2gen[];
-   Driver drv[];
-   Monitor mon[];
+   Agent agent[4];
+   Coverage coverage;
+   Scoreboard scoreboard;
+
    Config cfg;
-   Scoreboard scb;
-   Coverage cov;
    virtual Utopia.TB_Rx Rx[];
    virtual Utopia.TB_Tx Tx[];
    int numRx, numTx;
    vCPU_T mif;
    CPU_driver cpu;
-
-   extern function new(input vUtopiaRx Rx[],
-		       input vUtopiaTx Tx[],
-		       input int numRx, numTx,
-		       input vCPU_T mif);
-   extern virtual function void gen_cfg();
-   extern virtual function void build();
-   extern virtual task run();
-   extern virtual function void wrap_up();
-
-endclass : Environment
-
+   
 
 //---------------------------------------------------------------------------
 // Construct an environment instance
 //---------------------------------------------------------------------------
-function Environment::new(input vUtopiaRx Rx[],
-			  input vUtopiaTx Tx[],
-			  input int numRx, numTx,
-			  input vCPU_T mif);
+function new(string name, uvm_component parent);
+   super.new(name, parent);
+endfunction : new
+
+
+//---------------------------------------------------------------------------
+// Initialize all atributes in the Env class
+//---------------------------------------------------------------------------
+function initialize(input vUtopiaRx Rx[], input vUtopiaTx Tx[], input int numRx, numTx, input vCPU_T mif, input Config cfg);
    this.Rx = new[Rx.size()];
    foreach (Rx[i]) this.Rx[i] = Rx[i];
    this.Tx = new[Tx.size()];
@@ -127,24 +118,14 @@ function Environment::new(input vUtopiaRx Rx[],
    this.numRx = numRx;
    this.numTx = numTx;
    this.mif = mif;
-
-   cfg = new(numRx,numTx);
-
-   if ($test$plusargs("ntb_random_seed")) begin
-      int seed;
-      $value$plusargs("ntb_random_seed=%d", seed);
-      $display("Simulation run with random seed=%0d", seed);
-   end
-   else
-     $display("Simulation run with default random seed");
-   
-endfunction : new
+   this.cfg = cfg;
+endfunction: initialize
 
 
 //---------------------------------------------------------------------------
 // Randomize the configuration descriptor
 //---------------------------------------------------------------------------
-function void Environment::gen_cfg();
+function void gen_cfg();
    assert(cfg.randomize());
    cfg.display();
 endfunction : gen_cfg
@@ -155,28 +136,34 @@ endfunction : gen_cfg
 // Note that objects are built for every channel, even if they are not in use
 // This prevents the bug when you use a null handle
 //---------------------------------------------------------------------------
-function void Environment::build();
+function void build(uvm_phase phase);
+   super.build_phase(phase);
+
+   foreach(agent[i]) begin
+      agent[i] = Agent::type_id::create(.name("agent_%d",i), .parent(this));
+   end
+   coverage = Coverage::type_id::create(.name("coverage"), .parent(this));
+   scoreboard = Scoreboard::type_id::create(.name("scoreboard"), .parent(this));
+
    cpu = new(mif, cfg);
 
-   gen = new[numRx];
-   drv = new[numRx];
+   /*gen = new[numRx];
    gen2drv = new[numRx];
    drv2gen = new[numRx];
-   scb = new("scoreboard", this, cfg);
-   cov = new();
    
-   foreach(gen[i]) begin
-      gen2drv[i] = new();
-      gen[i] = new(gen2drv[i], drv2gen[i], cfg.cells_per_chan[i], i);
-      drv[i] = new("driver", this);
-      drv[i].build_phase(gen2drv[i], drv2gen[i], Rx[i], i);
-   end
-
    mon = new[numTx];
    foreach (mon[i]) begin
       mon[i] = new("monitor", this);
       mon[i].initialize(Tx[i], i);
    end
+   foreach(gen[i]) begin
+      gen2drv[i] = new();
+      gen[i] = new(gen2drv[i], drv2gen[i], cfg.cells_per_chan[i], i);
+      drv[i] = new("driver", this);
+      drv[i].build_phase();
+      drv[i].initialize(gen2drv[i], drv2gen[i], Rx[i], i);
+   end
+
 
    // Connect the scoreboard with callbacks
    begin
@@ -190,9 +177,20 @@ function void Environment::build();
    begin
       Cov_Monitor_cbs smc = new(cov);
       foreach (mon[i]) mon[i].cbsq.push_back(smc);  // Add cov to every monitor
-   end
+   end*/
 
 endfunction : build
+
+
+function void connect(uvm_phase phase);
+   super.connect_phase(phase);
+
+   foreach(agent[i]) begin
+      agent[i].aport.connect(coverage.analysis_export);
+      agent[i].aport.connect(scoreboard.sc_analysis_export);
+   end
+
+endfunction: connect
 
 
 //---------------------------------------------------------------------------
@@ -252,3 +250,5 @@ function void Environment::wrap_up();
    scb.wrap_up;
    
 endfunction : wrap_up
+
+endclass : Environment

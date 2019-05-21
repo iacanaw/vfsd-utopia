@@ -11,12 +11,12 @@ import uvm_pkg::*;
 
 typedef virtual Utopia.TB_Tx vUtopiaTx;
 
-typedef class Monitor;
+/*typedef class Monitor;
 
 class Monitor_cbs;
       virtual task post_rx(input Monitor mon, input NNI_cell c);
       endtask : post_rx
-endclass : Monitor_cbs
+endclass : Monitor_cbs*/
 
 class Monitor extends uvm_monitor;
 
@@ -53,8 +53,8 @@ endfunction: new
 function void Monitor::build_phase(uvm_phase phase);
    super.build_phase(phase);
       //From old SV.Monitor
-   
-   void'(uvm_resource_db#(virtual utopia_if )::read_by_name (.scope("ifs"), .name(" utopia_if "), .val(uif)));
+   void'(uvm_resource_db#(virtual utopia_if )::read_by_name (.scope("ifs"), .name(" utopia_if "), .val(uif))); // Interface com a DUT
+   aport = new(.name("aport"), .parent(this));
    //monitor_port = new(.name(" monitor_port "), .parent(this));
 endfunction: build_phase
 
@@ -70,13 +70,13 @@ endfunction: initialize
 // run(): Run the monitor
 //---------------------------------------------------------------------------
 task Monitor::run_phase(uvm_phase phase);
-   NNI_cell c;
-   aport = new("aport", this); 
-   
+   NNI_cell c;  
    forever begin
       receive(c);
-      foreach (cbsq[i])
+      aport.write(c);
+     /* foreach (cbsq[i])
       cbsq[i].post_rx(this, c);   // Post-receive callback
+      */
    end
 endtask: run_phase
 

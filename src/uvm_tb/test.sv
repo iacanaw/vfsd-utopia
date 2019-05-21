@@ -74,7 +74,40 @@ import uvm_pkg::*;
 `include "../src/uvm_tb/definitions.sv"  // include external definitions
 
 `include "../src/uvm_tb/environment.sv"
+
+class utopia_test extends uvm_test;
+  `uvm_component_utils(utopia_test)
+
   Environment env;
+  Config cfg;
+
+  //---------------------------------------------------------------------
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+  endfunction: new
+
+  //---------------------------------------------------------------------
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    begin
+      cfg = new(numRx,numTx);
+      assert(cfg.randomize());
+      uvm_config_db#(Config)::set
+      (.cntxt(this), .inst_name("*"), .field_name("config"), .value(cfg));
+      BaseTr::type_id::set_type_override(UNI_cell::get_type());
+      env = Environment::type_id::create(.name("env"), .parent(this));
+    end
+  endfunction: build_phase
+
+  //---------------------------------------------------------------------
+  task run_phase(uvm_phase phase);
+    env = new("env", this);
+    env.initialize(Rx, Tx, NumRx, NumTx, mif, cfg);
+    env.gen_cfg();
+    env.build(phase);
+    env.run();
+    env.wrap_up();
+   endtask: run_phase
 
 program automatic test
   #(parameter int NumRx = 4, parameter int NumTx = 4)
@@ -98,7 +131,7 @@ program automatic test
     `endif
     $display("");
   end
-
+/*
 // class Driver_cbs_drop extends Driver_cbs;
 //  virtual task pre_tx(input ATM_cell cell, ref bit drop);
 //     // Randomly drop 1 out of every 100 transactions
@@ -137,5 +170,5 @@ program automatic test
     env.wrap_up();
   end
 
-endprogram // test
+endprogram // test*/
 

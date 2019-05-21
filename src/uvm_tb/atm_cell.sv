@@ -8,8 +8,6 @@ import uvm_pkg::*;
 
 virtual class BaseTr extends uvm_sequence_item;
 
-   `uvm_object_utils(BaseTr)
-
    static int count;  // Number of instance created
    int id;            // Unique transaction id
 
