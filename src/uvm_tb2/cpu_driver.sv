@@ -1,25 +1,5 @@
-/**********************************************************************
- * Definition of the CPU driver class
- *
- * Author: Chris Spear
- * Revision: 1.01
- * Last modified: 8/2/2011
- *
- * (c) Copyright 2008-2011, Chris Spear, Greg Tumbush. *** ALL RIGHTS RESERVED ***
- * http://chris.spear.net
- *
- *  This source file may be used and distributed without restriction
- *  provided that this copyright statement is not removed from the file
- *  and that any derivative work contains this copyright notice.
- *
- * Used with permission in the book, "SystemVerilog for Verification"
- * By Chris Spear and Greg Tumbush
- * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
- *********************************************************************/
-
-
-`ifndef CPU_DRIVER__SV
- `define CPU_DRIVER__SV
+`ifndef CPUDRVR__UVM
+`define CPUDRVR__UVM
 
 import uvm_pkg::*;
 `include "uvm_macros.svh"
@@ -27,19 +7,17 @@ import uvm_pkg::*;
 `include "../src/uvm_tb2/atm_cell.sv"
 `include "../src/uvm_tb2/cpu_ifc.sv"
 `include "../src/uvm_tb2/config.sv"
+`include "../src/uvm_tb2/definitions.sv"
 //`include "CPUMethod.sv"
 
-class CPU_driver extends uvm_driver;
-
-   `uvm_component_utils(CPU_driver);
-
+class CPU_driver;
    vCPU_T mif;
    CellCfgType lookup [255:0]; // copy of look-up table
    Config cfg;
    bit [NumTx-1:0] fwd;
    bit clk;
 
-   extern function new(vCPU_T mif, Config cfg, string name, uvm_component parent);
+   extern function new(vCPU_T mif, Config cfg);
    extern task Initialize_Host ();
    extern task HostWrite (int a, CellCfgType d); // configure
    extern task HostRead (int a, output CellCfgType d);
@@ -47,8 +25,7 @@ class CPU_driver extends uvm_driver;
 endclass : CPU_driver
 
 
-function CPU_driver::new(vCPU_T mif, Config cfg, string name, uvm_component parent);
-   super.new(name,parent);
+function CPU_driver::new(vCPU_T mif, Config cfg);
    this.mif = mif;
    this.cfg = cfg;
 endfunction : new
@@ -115,6 +92,3 @@ task CPU_driver::run();
    $display("Verified");
 
 endtask : run
-
-
-`endif // CPU_DRIVER__SV

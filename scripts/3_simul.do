@@ -2,7 +2,7 @@
 transcript on
 
 #do compilation
-do 1_compile.do
+do compile.do
 
 #do waves
 do 2_wave.do
