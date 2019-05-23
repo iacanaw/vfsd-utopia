@@ -1,6 +1,9 @@
 `ifndef ATM_CELL__UVM
 `define ATM_CELL__UVM
 
+import uvm_pkg::*;
+`include "uvm_macros.svh"
+
 `include "../src/uvm_tb2/definitions.sv"
 
 virtual class BaseTr extends uvm_sequence_item;

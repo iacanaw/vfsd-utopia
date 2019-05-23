@@ -6,89 +6,63 @@ import uvm_pkg::*;
 
 `include "../src/uvm_tb2/atm_cell.sv"
 
-typedef virtual Utopia.TB_Rx vUtopiaRx;
-
 class Driver extends uvm_driver#(BaseTr);
 	`uvm_component_utils(Driver)
 
-	uvm_analysis_port #(BaseTr) aport;
+	// Utopia INPUT (Rx) interface
+	virtual Utopia.TB_Rx u_if;
 
-	virtual utopia_if uif;
+	// Analysis port to Scoreboard
+	uvm_analysis_port #(BaseTr) drv_port;
 
-	/*mailbox gen2drv;	// For cells sent from generator
-    event   drv2gen;	// Tell generator when I am done with cell*/
-    vUtopiaRx Rx;		// Virtual interface for transmitting cells
-    //Driver_cbs cbsq[$]; // Queue of callback objects
-    int PortID;
-
-
-
+    //------------------
+    //	Constructor
+    //------------------
 	function new(string name="", uvm_component parent);
 		super.new(name, parent);
 	endfunction: new
 
 
-
+    //------------------
+    //	Build phase
+    //------------------
 	function void build_phase(uvm_phase phase);
 		super.build_phase(phase);
-		aport = new("aport", this);
-		void'(uvm_resource_db#(virtual utopia_if)::read_by_name(.scope("ifs"), .name("utopia_if"), .val(uif)));
+
+		// Creates the communication channel to the SB
+		drv_port = new("drv_port", this);
+
+		//Connects the driver to the Utopia input interface
+		if ( !(uvm_config_db #(virtual Utopia.TB_Rx)::get(this,"","u_if", u_if)) ) begin
+			`uvm_fatal("driver", "Fail to build Driver");
+		end
 	endfunction: build_phase
 
 
-
-	function void initialize(input vUtopiaRx Rx, input int PortID);
-   		this.Rx      = Rx;
-   		this.PortID  = PortID;
-   	endfunction: initialize
-
-
-
+    //------------------
+    //	Run phase
+    //------------------
 	task run_phase(uvm_phase phase);
-		
 		UNI_cell c;
-		bit drop = 0;
-
 	    forever begin
 	    	@uif.cbr;
 	    	uif.cbr.data 	<= 0;
 	    	uif.cbr.soc 	<= 0;
 	    	uif.cbr.clav 	<= 0;
+	    	// Gets a new UNI Cell from the sequencer
 	    	seq_item_port.get_next_item(c);
-	    	@uif.cbr;
+
+	    	// Send the UNI Cell to the Utopia
 			send(c);
+
+			// Inform to the sequencer that the cell was sent
 			seq_item_port.item_done();
 		end
 	endtask: run_phase
 
-
-	    	
-
-        // Read the cell at the front of the mailbox
-		/*	//gen2drv.peek(c);
-		    begin: Tx
-			 // Pre-transmit callbacks
-			foreach (cbsq[i]) begin
-				cbsq[i].pre_tx(this, c, drop);
-			    if (drop) disable Tx; 	// Don't transmit this cell
-			end
-
-			c.display($sformatf("@%0t: Drv%0d: ", $time, PortID));
-			send(c);
-			
-			// Post-transmit callbacks
-			foreach (cbsq[i])
-				cbsq[i].post_tx(this, c);
-		    end
-
-		    gen2drv.get(c);     // Remove cell from the mailbox
-		    ->drv2gen;	  // Tell the generator we are done with this cell
-
-		end
-
-	endtask: run_phase
-*/
-
+    //------------------
+    //	Send task - ##Legacy code from the SV tb
+    //------------------
 	task send(input UNI_cell c);
 		ATMCellType Pkt;
 

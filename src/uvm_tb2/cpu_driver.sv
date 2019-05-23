@@ -92,3 +92,5 @@ task CPU_driver::run();
    $display("Verified");
 
 endtask : run
+
+`endif

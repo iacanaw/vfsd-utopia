@@ -43,3 +43,5 @@ interface Utopia;
   modport TB_Tx (clocking cbt);
 
 endinterface
+
+`endif
