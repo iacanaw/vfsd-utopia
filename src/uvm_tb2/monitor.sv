@@ -18,6 +18,7 @@ class Monitor extends uvm_monitor;
 	// A NNI transaction to store the incomming packet from Utopia output
 	NNI_cell nni_trans_collected;
 
+	//Informs witch port this monitor is watching
 	int portN;
 
     //------------------
@@ -91,7 +92,7 @@ class Monitor extends uvm_monitor;
 			nni_trans_collected = new();
 			nni_trans_collected.unpack(Pkt);
 
-			//Send the transaction to the scoreboard
+			//Send the received transaction to the scoreboard
 			mon_port.write(nni_trans_collected);
 
 			//Debug print

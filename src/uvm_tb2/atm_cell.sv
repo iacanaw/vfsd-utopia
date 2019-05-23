@@ -17,10 +17,6 @@ virtual class BaseTr extends uvm_sequence_item;
     id = count++;
   endfunction
 
-  // "pure" methods supported in VCS 2008.03 and later
-  //pure virtual function bit compare(input BaseTr to);
-  //pure virtual function BaseTr copy(input BaseTr to=null);
-  //pure virtual function void display(input string prefix="");
 endclass // BaseTr
 
 typedef class NNI_cell;
@@ -181,6 +177,12 @@ endclass : UNI_cell
 
 
 
+/////////////////////////////////////////////////////////////////////////////
+// UNI Cell Sequencer
+/////////////////////////////////////////////////////////////////////////////
+typedef uvm_sequencer #(UNI_cell) UNI_cell_sequencer;
+
+
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -192,7 +194,7 @@ class NNI_cell extends BaseTr;
    rand bit        [15:0] VCI;
    rand bit               CLP;
    rand bit        [2:0]  PT;
-        bit        [7:0]  HEC;
+   bit        [7:0]  HEC;
    rand bit [0:47] [7:0]  Payload;
 
    // Meta-data fields
@@ -200,11 +202,11 @@ class NNI_cell extends BaseTr;
    static bit syndrome_not_generated = 1;
 
 
-function new(string name = "");
-   super.new(name);
-   if (syndrome_not_generated)
-     generate_syndrome();
-endfunction : new
+   function new(string name = "");
+      super.new(name);
+      if (syndrome_not_generated)
+        generate_syndrome();
+   endfunction : new
 
 
    //-----------------------------------------------------------------------------
@@ -302,7 +304,9 @@ endfunction : new
       hec = hec ^ 8'h55;
    endfunction : hec
 
-endclass : NNI_cell
+endclass : NNI_cell  
+
+
 
 
 `endif // ATM_CELL__SV
