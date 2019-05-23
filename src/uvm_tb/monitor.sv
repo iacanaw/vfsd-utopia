@@ -11,12 +11,12 @@ import uvm_pkg::*;
 
 typedef virtual Utopia.TB_Tx vUtopiaTx;
 
-/*typedef class Monitor;
+typedef class Monitor;
 
 class Monitor_cbs;
       virtual task post_rx(input Monitor mon, input NNI_cell c);
       endtask : post_rx
-endclass : Monitor_cbs*/
+endclass : Monitor_cbs
 
 class Monitor extends uvm_monitor;
 

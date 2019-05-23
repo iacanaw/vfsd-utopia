@@ -11,7 +11,7 @@ import uvm_pkg::*;
 
 typedef virtual Utopia.TB_Rx vUtopiaRx;
 
-/*typedef class Driver;
+typedef class Driver;
 
 class Driver_cbs;
 		virtual task pre_tx(input Driver drv,
@@ -22,7 +22,7 @@ class Driver_cbs;
 		virtual task post_tx(input Driver drv,
 			       input UNI_cell c);
 		endtask : post_tx
-endclass : Driver_cbs*/
+endclass : Driver_cbs
 
 class Driver extends uvm_driver#(BaseTr);
 	`uvm_component_utils(Driver)

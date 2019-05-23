@@ -9,6 +9,7 @@ class Expect_cells;
    int iexpect, iactual;
 endclass : Expect_cells
 
+typedef class Scoreboard;
 
 class Sb_subscriber extends uvm_subscriber#(BaseTr);
    `uvm_component_utils(Sb_subscriber)

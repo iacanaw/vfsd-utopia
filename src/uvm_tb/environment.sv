@@ -16,11 +16,15 @@
  * By Chris Spear and Greg Tumbush
  * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
  *********************************************************************/
+`ifndef ENVIRONMENT_SV
+`define ENVIRONMENT_SV
+
 `include "../src/uvm_tb/definitions.sv"
 `include "../src/uvm_tb/generator.sv"
 `include "../src/uvm_tb/driver.sv"
 `include "../src/uvm_tb/monitor.sv"
 `include "../src/uvm_tb/config.sv"
+`include "../src/uvm_tb/agent.sv"
 `include "../src/uvm_tb/scoreboard.sv"
 `include "../src/uvm_tb/coverage.sv"
 `include "../src/uvm_tb/cpu_ifc.sv"
@@ -85,9 +89,9 @@ endclass : Cov_Monitor_cbs
 
 /////////////////////////////////////////////////////////
 class Environment extends uvm_env;
-   `uvm_component_utils(Environment);
+   `uvm_component_utils(Environment)
 
-   Agent agent[4];
+   Agent [3:0] agent;
    Coverage coverage;
    Scoreboard scoreboard;
 
@@ -140,7 +144,7 @@ function void build(uvm_phase phase);
    super.build_phase(phase);
 
    foreach(agent[i]) begin
-      agent[i] = Agent::type_id::create(.name("agent_%d",i), .parent(this));
+      agent[i] = Agent::type_id::create(.name("agent%d",i), .parent(this));
    end
    coverage = Coverage::type_id::create(.name("coverage"), .parent(this));
    scoreboard = Scoreboard::type_id::create(.name("scoreboard"), .parent(this));
@@ -252,3 +256,4 @@ function void Environment::wrap_up();
 endfunction : wrap_up
 
 endclass : Environment
+`endif
