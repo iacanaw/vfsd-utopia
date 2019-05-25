@@ -4,6 +4,7 @@
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 `include "../src/uvm_tb2/environment.sv"
+`include "../src/uvm_tb2/seq_of_UNI.sv"
 `include "../src/uvm_tb2/cpu_driver.sv"
 `include "../src/uvm_tb2/config.sv"
 `include "../src/uvm_tb2/cpu_ifc.sv"
@@ -11,38 +12,46 @@ import uvm_pkg::*;
 class test extends uvm_test;
   `uvm_component_utils(test);
 
-  virtual interface Utopia rx;
-
-  environment env;
+  Environment env;
   seq_of_UNI seq;
 
   CPU_driver cpu;
   Config cfg;
-  vCPU_T mif;
+  virtual cpu_ifc mif;
 
-  function teste::new(string name="teste", uvm_component parent);
+  function new(string name="test", uvm_component parent);
     super.new(name, parent);
   endfunction: new
 
-  task teste::configure_phase(uvm_phase phase);
+  task configure_phase(uvm_phase phase);
     super.configure_phase(phase);
   endtask : configure_phase
 
-  function void teste::build_phase(uvm_phase phase);
+  function void build_phase(uvm_phase phase);
     super.build_phase(phase);
     // Creates the environment
-    env = environment::type_id::create("env", this);
+    env = Environment::type_id::create("env", this);
 
     // Creates the sequencer
     seq = seq_of_UNI::type_id::create("seq", this);
 
 
-    cgf = new(`RxPorts,`TxPorts);
+    cfg = new(`RxPorts,`TxPorts);
     uvm_config_db#(virtual cpu_ifc)::get(null, "*", "mif", mif);
     cpu = new(mif, cfg);
   endfunction : build_phase
 
-  task teste::run_phase(uvm_phase phase);
+  //---------------------------------------
+  // end_of_elabaration phase
+  //---------------------------------------
+  function void end_of_elaboration();
+  //print's the topology
+    uvm_top.print_topology();
+    //uvm_factory::get().print();
+  endfunction : end_of_elaboration
+
+
+  task run_phase(uvm_phase phase);
     //int indice=0;
     phase.raise_objection(this);
     cpu.run();
@@ -60,7 +69,7 @@ class test extends uvm_test;
     
   endtask : run_phase
 
-endclass : teste
+endclass : test
 
-`endif // UNI_SEQUENCE__SV
+`endif 
 

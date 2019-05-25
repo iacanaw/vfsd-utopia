@@ -9,8 +9,8 @@ import uvm_pkg::*;
 class Monitor extends uvm_monitor;
 	`uvm_component_utils(Monitor)
 
-	// Utopia OUTPUT (Tx) interface
-	virtual Utopia.TB_Tx u_if;
+	// Utopia OUTPUT interface
+	virtual Utopia u_if;
 
 	// Analysis port to Scoreboard
 	uvm_analysis_port #(BaseTr) mon_port;
@@ -39,9 +39,9 @@ class Monitor extends uvm_monitor;
 		mon_port = new("mom_port", this);
 
 		//Connects the monitor to the Utopia output interface
-		if ( !(uvm_config_db #(virtual Utopia.TB_Rx)::get (this,"", "u_if", u_if)) ) begin
+		/*if ( !(uvm_config_db #(virtual Utopia.TB_Rx)::get (this,"", "u_if", u_if)) ) begin
 			`uvm_fatal("Monitor", "Fail to build Monitor");
-		end
+		end*/
 
 	endfunction: build_phase
 
@@ -53,7 +53,7 @@ class Monitor extends uvm_monitor;
 		super.connect_phase(phase);
 
 		//Connects the Analysis Port to the Scoreboard
-		uvm_config_db #(uvm_analysis_port #(BaseTr) )::get(null, "test.env.scoreboard", $sformatf("mon_port_%0d",portn), mon_port);
+		uvm_config_db #(uvm_analysis_port #(BaseTr) )::get(null, "test.env.scoreboard", $sformatf("mon_port_%0d",portN), mon_port);
 	endfunction: connect_phase
 
 
@@ -64,10 +64,9 @@ class Monitor extends uvm_monitor;
 	task run_phase(uvm_phase phase);
 		super.run_phase(phase);
 		
-		forever
-		begin :forever_loop_passive
+		forever begin: monitoring_loop
 			ATMCellType Pkt;
-			@(posedge u_if.clk_in, posedge u_if.reset) // APAGAR
+			//@(posedge u_if.clk_in, posedge u_if.reset)
 			//##Legacy code from the SV tb
 			u_if.cbt.clav <= 1;
 			while (u_if.cbt.soc !== 1'b1 && u_if.cbt.en !== 1'b0)
@@ -96,8 +95,8 @@ class Monitor extends uvm_monitor;
 			mon_port.write(nni_trans_collected);
 
 			//Debug print
-			nni_trans_collected.display($sformatf("monitor %d nni_cell: ",portn));
-		end: forever_loop_passive
+			nni_trans_collected.display($sformatf("monitor %d nni_cell: ",portN));
+		end: monitoring_loop
 	endtask: run_phase
 
 endclass: Monitor

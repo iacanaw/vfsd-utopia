@@ -1,5 +1,8 @@
+import uvm_pkg::*;
 /*********************************************************************/
 `timescale 1ns/1ns
+
+`include "uvm_macros.svh"
 
 //`define SYNTHESIS	// conditional compilation flag for synthesis
 //`define FWDALL		// conditional compilation flag to forward cells
@@ -30,5 +33,23 @@ module top;
   cpu_ifc mif();	  // Intel-style Utopia parallel management interface
   squat #(NumRx, NumTx) squat(Rx, Tx, mif, rst, clk);	// DUT
   //test  #(NumRx, NumTx) t1(Rx, Tx, mif, rst, clk);	// Test
+
+  initial 
+    uvm_config_db#(virtual cpu_ifc)::set(null, "*", "mif", mif);
+
+  // pass the interfaces to the agents and they will pass it to their monitors and drivers
+  for(genvar i=0; i< NumRx; i++) begin 
+    initial uvm_config_db#(virtual Utopia)::set(null, $sformatf("test.env.ag_%0d",i), "u_if", Rx[i]);
+  end
+
+  /*initial
+  begin
+    $dumpfile("dump.vcd"); $dumpvars;
+  end */
+
+  initial begin
+    run_test();
+    $write("TEST DONE! YOU GOT IT!");
+  end
 
 endmodule : top

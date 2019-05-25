@@ -65,7 +65,7 @@ function bit compare(input BaseTr to);
    if (this.VPI != other.VPI)         return 0;
    if (this.VCI != other.VCI)         return 0;
    if (this.CLP != other.CLP)         return 0;
-   if (this.PT  != other.PT)           return 0;
+   if (this.PT  != other.PT)          return 0;
    if (this.HEC != other.HEC)         return 0;
    if (this.Payload != other.Payload) return 0;
    return 1;
@@ -180,7 +180,7 @@ endclass : UNI_cell
 /////////////////////////////////////////////////////////////////////////////
 // UNI Cell Sequencer
 /////////////////////////////////////////////////////////////////////////////
-typedef uvm_sequencer #(UNI_cell) UNI_cell_sequencer;
+typedef uvm_sequencer #(UNI_cell) UNI_cell_Sequencer;
 
 
 
