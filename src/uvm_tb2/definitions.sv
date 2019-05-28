@@ -57,9 +57,9 @@ typedef struct packed {
   bit [11:0] VPI;
 } CellCfgType;
 
-typedef struct packed {
+/*typedef struct packed {
   bit [`TxPorts-1:0] fwd;
   bit [1:0] src;
-} CoverageInfo;
+} CoverageInfo;*/
 
 `endif // _INCL_DEFINITIONS

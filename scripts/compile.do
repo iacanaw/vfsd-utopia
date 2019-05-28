@@ -23,4 +23,4 @@ vlog -work work -sv ../src/dut/top2.sv
 
 set NoQuitOnFinish 1
 
-vsim +UVM_TESTNAME=test -novopt work.top
+vsim +UVM_TESTNAME=test +UVM_VERBOSITY=UVM_HIGH -novopt work.top

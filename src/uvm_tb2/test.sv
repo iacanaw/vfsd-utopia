@@ -14,10 +14,9 @@ class test extends uvm_test;
 
   Environment env;
   seq_of_UNI seq;
-
   CPU_driver cpu;
   Config cfg;
-  virtual cpu_ifc mif;
+  vCPU_T _mif;
 
   function new(string name="test", uvm_component parent);
     super.new(name, parent);
@@ -29,16 +28,20 @@ class test extends uvm_test;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
+    
     // Creates the environment
     env = Environment::type_id::create("env", this);
 
     // Creates the sequencer
     seq = seq_of_UNI::type_id::create("seq", this);
 
-
+    // 
     cfg = new(`RxPorts,`TxPorts);
-    uvm_config_db#(virtual cpu_ifc)::get(null, "*", "mif", mif);
-    cpu = new(mif, cfg);
+    if (!(uvm_config_db#(vCPU_T)::get(null, "*", "mif", _mif))) begin
+      `uvm_fatal("driver", "fail to build cpu_ifc");
+    end
+    cpu = new(_mif, cfg);
+
   endfunction : build_phase
 
   //---------------------------------------
@@ -61,9 +64,10 @@ class test extends uvm_test;
     end
 
     foreach (seq.UNI_seq[i]) begin
-      fork
+      //fork
+        `uvm_info("Sequencer",$sformatf("%d - starting",i), UVM_LOW);
         seq.start(seq.UNI_seq[i]);
-      join
+      //join
     end
     phase.drop_objection(this);
     

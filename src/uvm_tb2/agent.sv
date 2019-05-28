@@ -15,11 +15,9 @@ class Agent extends uvm_agent;
 	UNI_cell_Sequencer seq;
 	Monitor   mon;
 
-	// the Port ID in which this agent is connected
-	int portN;
+    // the Port ID in which this agent is connected
+    int portN;
 
-
-	virtual Utopia u_if;
 
     //------------------
     //	Constructor
@@ -33,9 +31,18 @@ class Agent extends uvm_agent;
     //	Build phase
     //------------------
     function void build_phase(uvm_phase phase);
+        // the Utopia interface that comes from TOP instantiation
+        virtual Utopia u_if;
+        
     	super.build_phase(phase);
 
-    	uvm_config_db #(virtual Utopia)::get (this, "", "u_if", u_if);
+        if ( !(uvm_config_db #(int)::get(this, "", "portN", portN)) ) begin
+            `uvm_fatal("Agent", "fails on get the portN");
+        end
+
+    	if(!(uvm_config_db#(virtual Utopia)::get(this, "", "u_if", u_if))) begin
+            `uvm_fatal("agent", "fail to get the Utopia interface");
+        end
 
     	// Sets the driver to the Utopia.TB_Rx interface
         uvm_config_db #(int)::set(this,$sformatf("drv_%0d",portN), "portN", portN);

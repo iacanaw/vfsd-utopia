@@ -21,9 +21,9 @@
 `ifndef CPU_DRIVER__SV
  `define CPU_DRIVER__SV
 
-`include "../src/tb/atm_cell.sv"
-`include "../src/tb/cpu_ifc.sv"
-`include "../src/tb/config.sv"
+`include "atm_cell.sv"
+`include "cpu_ifc.sv"
+`include "config.sv"
 //`include "CPUMethod.sv"
 
 class CPU_driver;

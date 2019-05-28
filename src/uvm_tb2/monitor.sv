@@ -13,7 +13,10 @@ class Monitor extends uvm_monitor;
 	virtual Utopia u_if;
 
 	// Analysis port to Scoreboard
-	uvm_analysis_port #(BaseTr) mon_port;
+	uvm_analysis_port#(NNI_cell) mon_port;
+
+	uvm_analysis_port#(NNI_cell) out_mon_ap;
+
 
 	// A NNI transaction to store the incomming packet from Utopia output
 	NNI_cell nni_trans_collected;
@@ -38,10 +41,15 @@ class Monitor extends uvm_monitor;
 		// Creates the communication channel to the SB
 		mon_port = new("mom_port", this);
 
+		//Gets the portN for this Monitor
+		if ( !(uvm_config_db #(int)::get (this, "", "portN", portN)) ) begin
+			`uvm_fatal("Monitor", "fail on get the portN");
+		end
+
 		//Connects the monitor to the Utopia output interface
-		/*if ( !(uvm_config_db #(virtual Utopia.TB_Rx)::get (this,"", "u_if", u_if)) ) begin
+		if ( !(uvm_config_db #(virtual Utopia)::get (this, "", "u_if", u_if)) ) begin
 			`uvm_fatal("Monitor", "Fail to build Monitor");
-		end*/
+		end
 
 	endfunction: build_phase
 
@@ -53,7 +61,10 @@ class Monitor extends uvm_monitor;
 		super.connect_phase(phase);
 
 		//Connects the Analysis Port to the Scoreboard
-		uvm_config_db #(uvm_analysis_port #(BaseTr) )::get(null, "test.env.scoreboard", $sformatf("mon_port_%0d",portN), mon_port);
+		if(!(uvm_config_db #(uvm_analysis_port #(NNI_cell) )::get(null, "uvm_test_top.env.scbrd", $sformatf("fromMon_%0d",portN), out_mon_ap))) begin
+			`uvm_fatal($sformatf("fromMon_%0d",portN), "fail to get the scoreboard analysis port");
+		end
+		mon_port.connect(out_mon_ap);
 	endfunction: connect_phase
 
 
@@ -64,39 +75,32 @@ class Monitor extends uvm_monitor;
 	task run_phase(uvm_phase phase);
 		super.run_phase(phase);
 		
-		forever begin: monitoring_loop
+		forever begin
 			ATMCellType Pkt;
-			//@(posedge u_if.clk_in, posedge u_if.reset)
-			//##Legacy code from the SV tb
+
 			u_if.cbt.clav <= 1;
 			while (u_if.cbt.soc !== 1'b1 && u_if.cbt.en !== 1'b0)
 				@(u_if.cbt);
 			for (int i=0; i<=52; i++) begin
 				// If not enabled, loop
-				while (u_if.cbt.en !== 1'b0)
-				begin
-					if (u_if.reset===1'b1) break;
-					@(u_if.cbt);
-				end
-				if (u_if.reset===1'b1) break;
-
+				while (u_if.cbt.en !== 1'b0) @(u_if.cbt);
+			  
 				Pkt.Mem[i] = u_if.cbt.data;
-				@(u_if.cbt);
+			  	@(u_if.cbt);
 			end
-			if (u_if.reset===1'b1) continue;
-
 			u_if.cbt.clav <= 0;
 
-			// Create a new transaction
-			nni_trans_collected = new();
-			nni_trans_collected.unpack(Pkt);
+				// Create a new transaction
+				nni_trans_collected = new();
+				nni_trans_collected.unpack(Pkt);
 
-			//Send the received transaction to the scoreboard
-			mon_port.write(nni_trans_collected);
+				//Send the received transaction to the scoreboard
+				mon_port.write(nni_trans_collected);
 
-			//Debug print
-			nni_trans_collected.display($sformatf("monitor %d nni_cell: ",portN));
-		end: monitoring_loop
+				//Debug print
+				nni_trans_collected.display($sformatf("monitor %d nni_cell: ",portN));
+			//end
+		end
 	endtask: run_phase
 
 endclass: Monitor

@@ -8,4 +8,4 @@ do compile.do
 do 2_wave.do
 
 #simulate
-run 50000 ns
+run 5000 ns

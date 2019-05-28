@@ -5,7 +5,6 @@ import uvm_pkg::*;
 `include "uvm_macros.svh"
 
 `include "../src/uvm_tb2/atm_cell.sv"
-`include "../src/uvm_tb2/definitions.sv"
 
 class Coverage extends uvm_subscriber #(CoverageInfo);
 	`uvm_component_utils(Coverage);

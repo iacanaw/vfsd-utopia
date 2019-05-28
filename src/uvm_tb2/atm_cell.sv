@@ -6,7 +6,19 @@ import uvm_pkg::*;
 
 `include "../src/uvm_tb2/definitions.sv"
 
-virtual class BaseTr extends uvm_sequence_item;
+class CoverageInfo extends uvm_sequence_item;
+   `uvm_object_utils(CoverageInfo)
+   bit [`TxPorts-1:0] fwd;
+   bit [1:0] src;
+
+   function new(string name = "");
+      super.new(name);
+   endfunction: new
+
+endclass;
+
+
+/*virtual class BaseTr extends ;
 `uvm_object_utils(BaseTr)
 
   static int count;  // Number of instance created
@@ -17,7 +29,7 @@ virtual class BaseTr extends uvm_sequence_item;
     id = count++;
   endfunction
 
-endclass // BaseTr
+endclass // BaseTr*/
 
 typedef class NNI_cell;
 
@@ -25,7 +37,7 @@ typedef class NNI_cell;
 /////////////////////////////////////////////////////////////////////////////
 // UNI Cell Format
 /////////////////////////////////////////////////////////////////////////////
-class UNI_cell extends BaseTr;
+class UNI_cell extends uvm_sequence_item;
    // Physical fields
    rand bit        [3:0]  GFC;
    rand bit        [7:0]  VPI;
@@ -35,16 +47,30 @@ class UNI_cell extends BaseTr;
         bit        [7:0]  HEC;
    rand bit [0:47] [7:0]  Payload;
 
+   //static int count;  // Number of instance created
+   //int id;            // Unique transaction id
+
    // Meta-data fields
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
+
+   `uvm_object_utils_begin(UNI_cell)
+         `uvm_field_int(GFC,UVM_ALL_ON)
+         `uvm_field_int(VPI,UVM_ALL_ON)
+         `uvm_field_int(VCI,UVM_ALL_ON)
+         `uvm_field_int(CLP,UVM_ALL_ON)
+         `uvm_field_int(PT,UVM_ALL_ON)
+         `uvm_field_int(HEC,UVM_ALL_ON)
+         `uvm_field_int(Payload,UVM_ALL_ON) 
+   `uvm_object_utils_end
 
 
 //-----------------------------------------------------------------------------
 function new(string name = "");
    super.new(name);
    if (syndrome_not_generated)
-     generate_syndrome();
+      generate_syndrome();
+   //id = count++;
 endfunction : new
 
 
@@ -58,7 +84,7 @@ endfunction : post_randomize
 
 //-----------------------------------------------------------------------------
 
-function bit compare(input BaseTr to);
+function bit compare(input UNI_cell to);
    UNI_cell other;
    $cast(other, to);
    if (this.GFC != other.GFC)         return 0;
@@ -72,11 +98,27 @@ function bit compare(input BaseTr to);
 endfunction : compare
 
 
+function bit compare_NNI(input NNI_cell to);
+   UNI_cell other;
+   $cast(other, to);
+   if (this.GFC != other.GFC)         return 0;
+   if (this.VPI != other.VPI)         return 0;
+   if (this.VCI != other.VCI)         return 0;
+   if (this.CLP != other.CLP)         return 0;
+   if (this.PT  != other.PT)          return 0;
+   if (this.HEC != other.HEC)         return 0;
+   if (this.Payload != other.Payload) return 0;
+   return 1;
+endfunction : compare_NNI
+
+
 function void display(input string prefix);
    ATMCellType p;
 
-   $display("%sUNI id:%0d GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
-	    prefix, id, GFC, VPI, VCI, CLP, PT, HEC, Payload[0]);
+   //$display("%sUNI id:%0d GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
+	//    prefix, id, GFC, VPI, VCI, CLP, PT, HEC, Payload[0]);
+   $display("%sUNI GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
+       prefix, GFC, VPI, VCI, CLP, PT, HEC, Payload[0]);
    this.pack(p);
    $write("%s", prefix);
    foreach (p.Mem[i]) $write("%x ", p.Mem[i]); $display;
@@ -98,7 +140,7 @@ function void copy_data(input UNI_cell copy);
 endfunction : copy_data
 
 
-function BaseTr copy(input BaseTr to);
+function UNI_cell copy(input UNI_cell to);
    UNI_cell dst;
    if (to == null) dst = new();
    else            $cast(dst, to);
@@ -188,7 +230,7 @@ typedef uvm_sequencer #(UNI_cell) UNI_cell_Sequencer;
 /////////////////////////////////////////////////////////////////////////////
 // NNI Cell Format
 /////////////////////////////////////////////////////////////////////////////
-class NNI_cell extends BaseTr;
+class NNI_cell extends uvm_sequence_item;
    // Physical fields
    rand bit        [11:0] VPI;
    rand bit        [15:0] VCI;
@@ -196,6 +238,9 @@ class NNI_cell extends BaseTr;
    rand bit        [2:0]  PT;
    bit        [7:0]  HEC;
    rand bit [0:47] [7:0]  Payload;
+
+   static int count;  // Number of instance created
+   int id;            // Unique transaction id
 
    // Meta-data fields
    static bit [7:0] syndrome[0:255];
@@ -206,6 +251,7 @@ class NNI_cell extends BaseTr;
       super.new(name);
       if (syndrome_not_generated)
         generate_syndrome();
+      id = count++;
    endfunction : new
 
 
@@ -216,7 +262,7 @@ class NNI_cell extends BaseTr;
    endfunction : post_randomize
 
 
-   function bit compare(input BaseTr to);
+   function bit compare(input NNI_cell to);
       NNI_cell other;
       $cast(other, to);
       if (this.VPI != other.VPI)         return 0;
@@ -250,7 +296,7 @@ class NNI_cell extends BaseTr;
       copy.Payload = this.Payload;
    endfunction : copy_data
 
-   function BaseTr copy(input BaseTr to);
+   function NNI_cell copy(input NNI_cell to);
       NNI_cell dst;
       if (to == null) dst = new();
       else            $cast(dst, to);

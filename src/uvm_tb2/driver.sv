@@ -5,6 +5,7 @@ import uvm_pkg::*;
 `include "uvm_macros.svh"
 
 `include "../src/uvm_tb2/atm_cell.sv"
+`include "../src/uvm_tb2/definitions.sv"
 
 class Driver extends uvm_driver#(UNI_cell);
 	`uvm_component_utils(Driver)
@@ -15,9 +16,9 @@ class Driver extends uvm_driver#(UNI_cell);
 	virtual Utopia.TB_Rx u_if;
 
 	// Analysis port to Scoreboard
-	uvm_analysis_port #(BaseTr) drv_port;
+	uvm_analysis_port#(UNI_cell) drv_port;
 
-	uvm_analysis_port #(CoverageInfo) toCov;
+	uvm_analysis_port#(CoverageInfo) toCov;
 
     //------------------
     //	Constructor
@@ -40,8 +41,8 @@ class Driver extends uvm_driver#(UNI_cell);
 		toCov = new("toCov", this);
 
 		//Connects the driver to the Utopia input interface
-		if ( !(uvm_config_db #(virtual Utopia.TB_Rx)::get(this,"","u_if", u_if)) ) begin
-			`uvm_fatal("driver", "Fail to build Driver");
+		if (!(uvm_config_db #(virtual Utopia.TB_Rx)::get(this,"","u_if", u_if))) begin
+			`uvm_fatal("driver", "Fail to get utopia interface for driver");
 		end
 	endfunction: build_phase
 
@@ -55,10 +56,6 @@ class Driver extends uvm_driver#(UNI_cell);
 		CellCfgType CellCfg;
 		CoverageInfo covInfo;
 	    forever begin
-	    	@u_if.cbr;
-	    	u_if.cbr.data 	<= 0;
-	    	u_if.cbr.soc 	<= 0;
-	    	u_if.cbr.clav 	<= 0;
 	    	// Gets a new UNI Cell from the sequencer
 	    	seq_item_port.get_next_item(c);
 
@@ -68,7 +65,8 @@ class Driver extends uvm_driver#(UNI_cell);
 			// Send informations about the transaction to the Coverage module
 			c_nni = c.to_NNI();
 			CellCfg = top.squat.lut.read(c_nni.VPI);
-			covInfo.src = portN;
+			covInfo = new();
+			covInfo.src = this.portN;
 			covInfo.fwd = CellCfg.FWD;
 			toCov.write(covInfo);
 
@@ -84,7 +82,8 @@ class Driver extends uvm_driver#(UNI_cell);
 		ATMCellType Pkt;
 
 		c.pack(Pkt);
-		$write("Sending cell: "); foreach (Pkt.Mem[i]) $write("%x ", Pkt.Mem[i]); $display;
+		//$write("Driver %0d -- Sending cell: ", portN); foreach (Pkt.Mem[i]) $write("%x ", Pkt.Mem[i]); $display;
+		c.display($sformatf("Driver %0d -- Sending cell: ", portN));
 
 		// Iterate through bytes of cell, deasserting Start Of Cell indicater
 		@(u_if.cbr);

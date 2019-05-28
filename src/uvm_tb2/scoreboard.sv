@@ -50,7 +50,7 @@ class Scoreboard extends uvm_scoreboard;
 		ifound=0;
 
 		// Creates the port used to receive UNIcells from drivers
-		fromDrv = new( "fromDrv", this);
+		fromDrv = new("fromDrv", this);
 		uvm_config_db#(uvm_analysis_port#(UNI_cell))::set(this, "", "fromDrv", fromDrv);
 
 		// Creates the FIFO used to store each UNIcells recieved from drivers
@@ -154,7 +154,7 @@ class Scoreboard extends uvm_scoreboard;
 		    end
 		    found = 0;
 		    foreach (UNICell_FIFO[idx,i]) begin
-				if (UNICell_FIFO[idx][i].compare(toCheck)) begin
+				if (UNICell_FIFO[idx][i].compare_NNI(toCheck)) begin
 					UNICell_FIFO[idx].delete(i);
 					ifound++;
 					found = 1;

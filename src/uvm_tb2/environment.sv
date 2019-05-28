@@ -42,10 +42,10 @@ class Environment extends uvm_env;
     	cov = Coverage::type_id::create("cov", this);
 
     	foreach(ag[i]) begin
-    		// Sets the port in which each agent will be connected 
-    		uvm_config_db #(int)::set(this,$sformatf("ag_%0d",i), "portN", i);
     		// Creates the Agent[i]
     		ag[i] = Agent::type_id::create($sformatf("ag_%0d",i), this);
+            // Sets the port in which each agent will be connected 
+            uvm_config_db#(int)::set(this,$sformatf("ag_%0d",i), "portN", i);
     	end
     endfunction: build_phase
 
