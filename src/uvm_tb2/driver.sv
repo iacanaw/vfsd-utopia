@@ -13,12 +13,14 @@ class Driver extends uvm_driver#(UNI_cell);
 	int portN;
 
 	// Utopia INPUT (Rx) interface
-	virtual Utopia.TB_Rx u_if;
+	virtual Utopia.TB_Rx rx_if;
 
 	// Analysis port to Scoreboard
-	uvm_analysis_port#(UNI_cell) drv_port;
+	uvm_analysis_port#(UNI_cell) toScbrd;
 
+	// Analysis port to Coverage
 	uvm_analysis_port#(CoverageInfo) toCov;
+
 
     //------------------
     //	Constructor
@@ -35,13 +37,18 @@ class Driver extends uvm_driver#(UNI_cell);
 		super.build_phase(phase);
 
 		// Creates the communication channel to the SB
-		drv_port = new("drv_port", this);
+		toScbrd = new("toScbrd", this);
 
 		// Creates the port to send packets to the Coverage module
 		toCov = new("toCov", this);
 
+		//Gets the portN for this Driver
+		if ( !(uvm_config_db #(int)::get (this, "", "portN", portN)) ) begin
+			`uvm_fatal("Driver", "fail on get the portN");
+		end
+
 		//Connects the driver to the Utopia input interface
-		if (!(uvm_config_db #(virtual Utopia.TB_Rx)::get(this,"","u_if", u_if))) begin
+		if (!(uvm_config_db #(virtual Utopia.TB_Rx)::get(this,"","rx_if", rx_if))) begin
 			`uvm_fatal("driver", "Fail to get utopia interface for driver");
 		end
 	endfunction: build_phase
@@ -69,6 +76,7 @@ class Driver extends uvm_driver#(UNI_cell);
 			covInfo.src = this.portN;
 			covInfo.fwd = CellCfg.FWD;
 			toCov.write(covInfo);
+			toScbrd.write(c);
 
 			// Inform to the sequencer that the cell was sent
 			seq_item_port.item_done();
@@ -82,25 +90,24 @@ class Driver extends uvm_driver#(UNI_cell);
 		ATMCellType Pkt;
 
 		c.pack(Pkt);
-		//$write("Driver %0d -- Sending cell: ", portN); foreach (Pkt.Mem[i]) $write("%x ", Pkt.Mem[i]); $display;
-		c.display($sformatf("Driver %0d -- Sending cell: ", portN));
+		//c.display($sformatf("Driver %0d -- Sending cell: ", portN));
 
 		// Iterate through bytes of cell, deasserting Start Of Cell indicater
-		@(u_if.cbr);
-		u_if.cbr.clav <= 1;
+		@(rx_if.cbr);
+		rx_if.cbr.clav <= 1;
 		for (int i=0; i<=52; i++) 
 			begin
 			// If not enabled, loop
-			while (u_if.cbr.en === 1'b1) @(u_if.cbr);
+			while (rx_if.cbr.en === 1'b1) @(rx_if.cbr);
 
 				// Assert Start Of Cell indicater, assert enable, send byte 0 (i==0)
-				u_if.cbr.soc  <= (i == 0);
-				u_if.cbr.data <= Pkt.Mem[i];
-				@(u_if.cbr);
+				rx_if.cbr.soc  <= (i == 0);
+				rx_if.cbr.data <= Pkt.Mem[i];
+				@(rx_if.cbr);
 			end
-		u_if.cbr.soc <= 'z;
-		u_if.cbr.data <= 8'bx;
-		u_if.cbr.clav <= 0;
+		rx_if.cbr.soc <= 'z;
+		rx_if.cbr.data <= 8'bx;
+		rx_if.cbr.clav <= 0;
 	endtask: send
 
 endclass: Driver

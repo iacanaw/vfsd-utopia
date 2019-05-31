@@ -32,7 +32,7 @@ class Agent extends uvm_agent;
     //------------------
     function void build_phase(uvm_phase phase);
         // the Utopia interface that comes from TOP instantiation
-        virtual Utopia u_if;
+        virtual Utopia tx_if, rx_if;
         
     	super.build_phase(phase);
 
@@ -40,13 +40,17 @@ class Agent extends uvm_agent;
             `uvm_fatal("Agent", "fails on get the portN");
         end
 
-    	if(!(uvm_config_db#(virtual Utopia)::get(this, "", "u_if", u_if))) begin
+    	if(!(uvm_config_db#(virtual Utopia)::get(this, "", "tx_if", tx_if))) begin
+            `uvm_fatal("agent", "fail to get the Utopia interface");
+        end
+
+        if(!(uvm_config_db#(virtual Utopia)::get(this, "", "rx_if", rx_if))) begin
             `uvm_fatal("agent", "fail to get the Utopia interface");
         end
 
     	// Sets the driver to the Utopia.TB_Rx interface
         uvm_config_db #(int)::set(this,$sformatf("drv_%0d",portN), "portN", portN);
-    	uvm_config_db #(virtual Utopia.TB_Rx)::set(this,$sformatf("drv_%0d",portN), "u_if", u_if);
+    	uvm_config_db #(virtual Utopia.TB_Rx)::set(this,$sformatf("drv_%0d",portN), "rx_if", rx_if);
         // Creates the Driver
         drv = Driver::type_id::create($sformatf("drv_%0d",portN), this);
 
@@ -55,7 +59,7 @@ class Agent extends uvm_agent;
 
     	// Sets the monitor to the Utopia.TB_Tx interface
         uvm_config_db #(int)::set(this,$sformatf("mon_%0d",portN), "portN", portN);
-    	uvm_config_db #(virtual Utopia)::set (this,$sformatf("mon_%0d",portN), "u_if", u_if);
+    	uvm_config_db #(virtual Utopia)::set (this,$sformatf("mon_%0d",portN), "tx_if", tx_if);
         // Creates the Monitor
         mon = Monitor::type_id::create($sformatf("mon_%0d",portN), this);
 
@@ -69,6 +73,7 @@ class Agent extends uvm_agent;
     	super.connect_phase(phase);
 
   		drv.seq_item_port.connect(seq.seq_item_export);
+
         //mon.seq_item_port.connect(seq.seq_item_export);
 
     endfunction: connect_phase

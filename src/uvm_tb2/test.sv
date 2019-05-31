@@ -64,10 +64,10 @@ class test extends uvm_test;
     end
 
     foreach (seq.UNI_seq[i]) begin
-      //fork
-        `uvm_info("Sequencer",$sformatf("%d - starting",i), UVM_LOW);
+      fork
+        `uvm_info("--------------------------->Sequencer",$sformatf("%0d - starting",i), UVM_HIGH);
         seq.start(seq.UNI_seq[i]);
-      //join
+      join
     end
     phase.drop_objection(this);
     

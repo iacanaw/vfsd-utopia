@@ -43,7 +43,8 @@ module top;
 
   // pass the interfaces to the agents and they will pass it to their monitors and drivers
   for(genvar i=0; i< NumRx; i++) begin 
-    initial uvm_config_db#(virtual Utopia)::set(null, $sformatf("uvm_test_top.env.ag_%0d",i), "u_if", Rx[i]);
+    initial uvm_config_db#(virtual Utopia)::set(null, $sformatf("uvm_test_top.env.ag_%0d",i), "rx_if", Rx[i]);
+    initial uvm_config_db#(virtual Utopia)::set(null, $sformatf("uvm_test_top.env.ag_%0d",i), "tx_if", Tx[i]);
   end
 
   /*initial

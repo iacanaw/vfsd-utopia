@@ -98,20 +98,6 @@ function bit compare(input UNI_cell to);
 endfunction : compare
 
 
-function bit compare_NNI(input NNI_cell to);
-   UNI_cell other;
-   $cast(other, to);
-   if (this.GFC != other.GFC)         return 0;
-   if (this.VPI != other.VPI)         return 0;
-   if (this.VCI != other.VCI)         return 0;
-   if (this.CLP != other.CLP)         return 0;
-   if (this.PT  != other.PT)          return 0;
-   if (this.HEC != other.HEC)         return 0;
-   if (this.Payload != other.Payload) return 0;
-   return 1;
-endfunction : compare_NNI
-
-
 function void display(input string prefix);
    ATMCellType p;
 

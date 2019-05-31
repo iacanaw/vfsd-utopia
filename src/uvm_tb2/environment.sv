@@ -42,10 +42,10 @@ class Environment extends uvm_env;
     	cov = Coverage::type_id::create("cov", this);
 
     	foreach(ag[i]) begin
-    		// Creates the Agent[i]
-    		ag[i] = Agent::type_id::create($sformatf("ag_%0d",i), this);
             // Sets the port in which each agent will be connected 
             uvm_config_db#(int)::set(this,$sformatf("ag_%0d",i), "portN", i);
+    		// Creates the Agent[i]
+    		ag[i] = Agent::type_id::create($sformatf("ag_%0d",i), this);
     	end
     endfunction: build_phase
 
@@ -59,12 +59,16 @@ class Environment extends uvm_env;
 
 
 	//------------------
-    //	Configure phase
+    //	Connect phase
     //------------------
 	function void connect_phase(uvm_phase phase);
 		super.connect_phase(phase);
-		// Connects Scoreboard with Coverage module
- 		//scbrd.toCov_port.connect(cov.analysis_export);
+
+        // Connects Driver and Monitor in the Scoreboard
+        foreach(ag[i]) begin
+            ag[i].drv.toScbrd.connect(scbrd.fromDrv);
+            ag[i].mon.toScbrd.connect(scbrd.fromMon[i]);
+        end
 	endfunction: connect_phase
 
 endclass : Environment

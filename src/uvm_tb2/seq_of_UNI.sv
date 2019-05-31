@@ -21,7 +21,7 @@ class seq_of_UNI extends uvm_sequence #(UNI_cell);
 	task body;
 		int count = 0;
 
-		repeat(1000) begin
+		repeat(n) begin
 			UNI_cell new_UNIcell;
 			new_UNIcell = UNI_cell::type_id::create("new_UNIcell");
 			start_item(new_UNIcell);
@@ -29,7 +29,7 @@ class seq_of_UNI extends uvm_sequence #(UNI_cell);
 			finish_item(new_UNIcell);
 			count++;
 		end
-		`uvm_info("seq_of_UNI",$sformatf(">>> %d UNI_cell foram geradas", count), UVM_HIGH);
+		//`uvm_info("seq_of_UNI",$sformatf(">>> %0d UNI_cell foram geradas", count), UVM_HIGH);
 	endtask : body
 /*
 	virtual task pre_body();

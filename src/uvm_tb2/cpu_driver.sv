@@ -73,7 +73,7 @@ task CPU_driver::run();
 `ifdef FWDALL
       CellFwd.FWD = '1
 `endif
-   `uvm_info("cpu_driver",$sformatf("CellFwd.FWD[%0d]=%0d", i, CellFwd.FWD),UVM_HIGH);
+   `uvm_info("cpu_driver",$sformatf("CellFwd.FWD[%0d]=%0d", i, CellFwd.FWD),UVM_LOW);
       CellFwd.VPI = i;
       HostWrite(i, CellFwd);
       lookup[i] = CellFwd;

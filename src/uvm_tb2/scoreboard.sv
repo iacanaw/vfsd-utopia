@@ -91,7 +91,7 @@ class Scoreboard extends uvm_scoreboard;
     //------------------
 	task run_phase(uvm_phase phase);
 	  	fork
-			save_expected(phase);
+			save_expected();
 			foreach (incomming_NNIcell_FIFO[i]) begin
 				fork
 					int idx=i;
@@ -106,7 +106,7 @@ class Scoreboard extends uvm_scoreboard;
     //------------------
     //	Store input UNI_cells
     //------------------
-    task save_expected(uvm_phase phase);
+    task save_expected();
     	UNI_cell sample;
     	NNI_cell sample_nni;
     	CellCfgType CellCfg;
@@ -124,10 +124,10 @@ class Scoreboard extends uvm_scoreboard;
 
 	   		for (int i=0; i<`TxPorts; i++) begin
 	   			if(CellCfg.FWD[i]) begin
-	   				phase.raise_objection(this);
+	   				//phase.raise_objection(this);
    				 	UNICell_FIFO[i].push_back(sample);
 	 		   		iexpect++;
-	   				`uvm_info("Scoreboard", "INPUT PACKET RECEIVED !!!!", UVM_HIGH);
+	   				`uvm_info("-------> Scoreboard", $sformatf("INPUT PACKET RECEIVED !!!! id: %0d",iexpect), UVM_HIGH);
 	   			end
 	   		end
    		end
@@ -139,6 +139,7 @@ class Scoreboard extends uvm_scoreboard;
     //------------------
    	task verify(int idx);
    		NNI_cell toCheck;
+   		NNI_cell aux;
    		bit found;
    		forever begin
    			// Reads a NNI cell from NNI_cells FIFO 
@@ -154,7 +155,8 @@ class Scoreboard extends uvm_scoreboard;
 		    end
 		    found = 0;
 		    foreach (UNICell_FIFO[idx,i]) begin
-				if (UNICell_FIFO[idx][i].compare_NNI(toCheck)) begin
+		    	if(toCheck.compare(UNICell_FIFO[idx][i].to_NNI()))begin
+				//if (UNICell_FIFO[idx][i].compare_NNI(toCheck)) begin
 					UNICell_FIFO[idx].delete(i);
 					ifound++;
 					found = 1;
