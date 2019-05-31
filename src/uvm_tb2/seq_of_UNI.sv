@@ -17,16 +17,23 @@ class seq_of_UNI extends uvm_sequence #(UNI_cell);
 		super.new(name);
 	endfunction : new
 
+	task pre_body();
+  		super.pre_body();
+  		// get enable for each port
+	endtask
 
 	task body;
 		int count = 0;
 
-		repeat(n) begin
+		repeat(5) begin
+			`uvm_do(req);
+			#50
+			/*
 			UNI_cell new_UNIcell;
 			new_UNIcell = UNI_cell::type_id::create("new_UNIcell");
 			start_item(new_UNIcell);
 			assert(new_UNIcell.randomize());
-			finish_item(new_UNIcell);
+			finish_item(new_UNIcell);*/
 			count++;
 		end
 		//`uvm_info("seq_of_UNI",$sformatf(">>> %0d UNI_cell foram geradas", count), UVM_HIGH);

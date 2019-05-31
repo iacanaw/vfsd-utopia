@@ -63,10 +63,13 @@ class test extends uvm_test;
       seq.UNI_seq[i] = env.ag[i].seq;
     end
 
-    foreach (seq.UNI_seq[i]) begin
-      fork
-        `uvm_info("--------------------------->Sequencer",$sformatf("%0d - starting",i), UVM_HIGH);
-        seq.start(seq.UNI_seq[i]);
+    foreach(seq.UNI_seq[i]) begin
+      fork 
+        begin: parallel
+          `uvm_info("--------------------------->Sequencer",$sformatf("%0d - starting",i), UVM_HIGH);
+          seq.start(seq.UNI_seq[i]);
+        end: parallel
+      wait fork;
       join
     end
     phase.drop_objection(this);

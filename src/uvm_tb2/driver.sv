@@ -76,6 +76,7 @@ class Driver extends uvm_driver#(UNI_cell);
 			covInfo.src = this.portN;
 			covInfo.fwd = CellCfg.FWD;
 			toCov.write(covInfo);
+			`uvm_info($sformatf("Driver %0d",portN), "::: sending a package to Scoreboard", UVM_HIGH);
 			toScbrd.write(c);
 
 			// Inform to the sequencer that the cell was sent
