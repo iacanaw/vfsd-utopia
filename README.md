@@ -4,8 +4,11 @@ This project is adapted from the one in the book "SystemVerilog for Verification
 --------------------------------------------------------------------------------------------------------------------------------------
 
 VFSD - Iaçanã
+
 Para executar a verificação UVM:
+
 No QuestaSim/ModelSim navegue para o diretório: \vfsd-utopia\scripts
+
 Execute o comando: do 3_simul.do
 
 Todos os módulos compilam. Porém o comportamento do Scoreboard não está adequado.
