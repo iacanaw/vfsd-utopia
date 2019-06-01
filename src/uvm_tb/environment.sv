@@ -1,259 +1,78 @@
-/**********************************************************************
- * Definition of the environment class for the ATM testbench
- *
- * Author: Chris Spear
- * Revision: 1.01
- * Last modified: 8/2/2011
- *
- * (c) Copyright 2008-2011, Chris Spear, Greg Tumbush. *** ALL RIGHTS RESERVED ***
- * http://chris.spear.net
- *
- *  This source file may be used and distributed without restriction
- *  provided that this copyright statement is not removed from the file
- *  and that any derivative work contains this copyright notice.
- *
- * Used with permission in the book, "SystemVerilog for Verification"
- * By Chris Spear and Greg Tumbush
- * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
- *********************************************************************/
-`ifndef ENVIRONMENT_SV
-`define ENVIRONMENT_SV
+`ifndef ENVIRONMENT__UVM
+`define ENVIRONMENT__UVM
 
-`include "../src/uvm_tb/definitions.sv"
-`include "../src/uvm_tb/generator.sv"
-`include "../src/uvm_tb/driver.sv"
-`include "../src/uvm_tb/monitor.sv"
+import uvm_pkg::*;
+`include "uvm_macros.svh"
+
 `include "../src/uvm_tb/config.sv"
 `include "../src/uvm_tb/agent.sv"
 `include "../src/uvm_tb/scoreboard.sv"
 `include "../src/uvm_tb/coverage.sv"
+
+//Imported from the SV original projetc
 `include "../src/uvm_tb/cpu_ifc.sv"
 `include "../src/uvm_tb/cpu_driver.sv"
-import uvm_pkg::*;
-`include "uvm_macros.svh"
-/////////////////////////////////////////////////////////
-// Call scoreboard from Driver using callbacks
-/////////////////////////////////////////////////////////
-class Scb_Driver_cbs extends Driver_cbs;
-   Scoreboard scb;
 
-   function new(Scoreboard scb);
-      this.scb = scb;
-   endfunction : new
-
-   // Send received cell to scoreboard
-   virtual task post_tx(input Driver drv,
-		        input UNI_cell c);
-   scb.save_expected(c);
-   endtask : post_tx
-endclass : Scb_Driver_cbs
-
-
-/////////////////////////////////////////////////////////
-// Call scoreboard from Monitor using callbacks
-/////////////////////////////////////////////////////////
-class Scb_Monitor_cbs extends Monitor_cbs;
-   Scoreboard scb;
-
-   function new(Scoreboard scb);
-      this.scb = scb;
-   endfunction : new
-
-   // Send received cell to scoreboard
-   virtual task post_rx(input Monitor mon,
-		        input NNI_cell c);
-   scb.check_actual(c, mon.PortID);
-   endtask : post_rx
-endclass : Scb_Monitor_cbs
-
-
-/////////////////////////////////////////////////////////
-// Call coverage from Monitor using callbacks
-/////////////////////////////////////////////////////////
-class Cov_Monitor_cbs extends Monitor_cbs;
-   Coverage cov;
-
-   function new(Coverage cov);
-      this.cov = cov;
-   endfunction : new
-
-   // Send received cell to coverage
-   virtual task post_rx(input Monitor mon,
-		        input NNI_cell c);
-   CellCfgType CellCfg = top.squat.lut.read(c.VPI);
-   cov.sample(mon.PortID, CellCfg.FWD);
-   endtask : post_rx
-endclass : Cov_Monitor_cbs
-
-
-
-/////////////////////////////////////////////////////////
 class Environment extends uvm_env;
-   `uvm_component_utils(Environment)
+	`uvm_component_utils(Environment)
 
-   Agent [3:0] agent;
-   Coverage coverage;
-   Scoreboard scoreboard;
-
-   Config cfg;
-   virtual Utopia.TB_Rx Rx[];
-   virtual Utopia.TB_Tx Tx[];
-   int numRx, numTx;
-   vCPU_T mif;
-   CPU_driver cpu;
-   
-
-//---------------------------------------------------------------------------
-// Construct an environment instance
-//---------------------------------------------------------------------------
-function new(string name, uvm_component parent);
-   super.new(name, parent);
-endfunction : new
+	Agent ag[`RxPorts];
+	Scoreboard scbrd;
+	Coverage cov;
 
 
-//---------------------------------------------------------------------------
-// Initialize all atributes in the Env class
-//---------------------------------------------------------------------------
-function initialize(input vUtopiaRx Rx[], input vUtopiaTx Tx[], input int numRx, numTx, input vCPU_T mif, input Config cfg);
-   this.Rx = new[Rx.size()];
-   foreach (Rx[i]) this.Rx[i] = Rx[i];
-   this.Tx = new[Tx.size()];
-   foreach (Tx[i]) this.Tx[i] = Tx[i];
-   this.numRx = numRx;
-   this.numTx = numTx;
-   this.mif = mif;
-   this.cfg = cfg;
-endfunction: initialize
+    //------------------
+    //	Constructor
+    //------------------
+	function new(string name, uvm_component parent);
+		super.new(name, parent);
+	endfunction : new
 
 
-//---------------------------------------------------------------------------
-// Randomize the configuration descriptor
-//---------------------------------------------------------------------------
-function void gen_cfg();
-   assert(cfg.randomize());
-   cfg.display();
-endfunction : gen_cfg
+	//------------------
+    //	Build phase
+    //------------------
+    function void build_phase(uvm_phase phase);
+    	super.build_phase(phase);
+
+    	// Creates the Scoreboard module
+    	scbrd = Scoreboard::type_id::create("scbrd", this);
+
+    	// Creates the Coverage module
+    	cov = Coverage::type_id::create("cov", this);
+
+    	foreach(ag[i]) begin
+            // Sets the port in which each agent will be connected 
+            uvm_config_db#(int)::set(this,$sformatf("ag_%0d",i), "portN", i);
+    		// Creates the Agent[i]
+    		ag[i] = Agent::type_id::create($sformatf("ag_%0d",i), this);
+    	end
+    endfunction: build_phase
 
 
-//---------------------------------------------------------------------------
-// Build the environment objects for this test
-// Note that objects are built for every channel, even if they are not in use
-// This prevents the bug when you use a null handle
-//---------------------------------------------------------------------------
-function void build(uvm_phase phase);
-   super.build_phase(phase);
-
-   foreach(agent[i]) begin
-      agent[i] = Agent::type_id::create(.name("agent%d",i), .parent(this));
-   end
-   coverage = Coverage::type_id::create(.name("coverage"), .parent(this));
-   scoreboard = Scoreboard::type_id::create(.name("scoreboard"), .parent(this));
-
-   cpu = new(mif, cfg);
-
-   /*gen = new[numRx];
-   gen2drv = new[numRx];
-   drv2gen = new[numRx];
-   
-   mon = new[numTx];
-   foreach (mon[i]) begin
-      mon[i] = new("monitor", this);
-      mon[i].initialize(Tx[i], i);
-   end
-   foreach(gen[i]) begin
-      gen2drv[i] = new();
-      gen[i] = new(gen2drv[i], drv2gen[i], cfg.cells_per_chan[i], i);
-      drv[i] = new("driver", this);
-      drv[i].build_phase();
-      drv[i].initialize(gen2drv[i], drv2gen[i], Rx[i], i);
-   end
+    //------------------
+    //	Configure phase
+    //------------------
+    task configure_phase(uvm_phase phase);
+		super.configure_phase(phase);
+	endtask : configure_phase
 
 
-   // Connect the scoreboard with callbacks
-   begin
-      Scb_Driver_cbs sdc = new(scb);
-      Scb_Monitor_cbs smc = new(scb);
-      foreach (drv[i]) drv[i].cbsq.push_back(sdc);  // Add scb to every driver
-      foreach (mon[i]) mon[i].cbsq.push_back(smc);  // Add scb to every monitor
-   end
+	//------------------
+    //	Connect phase
+    //------------------
+	function void connect_phase(uvm_phase phase);
+		super.connect_phase(phase);
 
-   // Connect coverage with callbacks
-   begin
-      Cov_Monitor_cbs smc = new(cov);
-      foreach (mon[i]) mon[i].cbsq.push_back(smc);  // Add cov to every monitor
-   end*/
-
-endfunction : build
-
-
-function void connect(uvm_phase phase);
-   super.connect_phase(phase);
-
-   foreach(agent[i]) begin
-      agent[i].aport.connect(coverage.analysis_export);
-      agent[i].aport.connect(scoreboard.sc_analysis_export);
-   end
-
-endfunction: connect
-
-
-//---------------------------------------------------------------------------
-// Start the transactors (generators, drivers, monitors) in the environment
-// Channels that are not in use don't get started
-//---------------------------------------------------------------------------
-task Environment::run();
-   int num_gen_running;
-
-   // Let the CPU interface do its initialization before anyone else starts
-   cpu.run();
-
-   num_gen_running = numRx;
-
-   // For each input RX channel, start generator and driver
-   foreach(gen[i]) begin
-      int j=i;		// Automatic variable to hold index in spawned threads
-      fork
-	 begin
-	 if (cfg.in_use_Rx[j]) gen[j].run();	// Wait for generator to finish
-	    num_gen_running--;		// Decrement driver count
-	 end
-	 if (cfg.in_use_Rx[j]) drv[j].run();
-      join_none
-   end
-
-   // For each output TX channel, start monitor
-   foreach(mon[i]) begin
-      int j=i;		// Automatic variable to hold index in spawned threads
-      fork
-	 mon[j].run();
-      join_none
-   end
-
-   // Wait for all generators to finish, or time-out
-   fork : timeout_block
-      wait (num_gen_running == 0);
-      begin
-	 repeat (1_000_000) @(Rx[0].cbr);
-	 $display("@%0t: %m ERROR: Timeout while waiting for generators to finish", $time);
-	 cfg.nErrors++;
-      end
-   join_any
-   disable timeout_block;
-   
-   // Wait a little longer for the data flow through switch, into monitors, and scoreboards
-   repeat (1_000) @(Rx[0].cbr);
-endtask : run
-
-
-//---------------------------------------------------------------------------
-// Any post-run cleanup / reporting
-//---------------------------------------------------------------------------
-function void Environment::wrap_up();
-   $display("@%0t: End of simulation, %0d error%s, %0d warning%s", 
-	    $time, cfg.nErrors, cfg.nErrors==1 ? "" : "s", cfg.nWarnings, cfg.nWarnings==1 ? "" : "s");
-   scb.wrap_up;
-   
-endfunction : wrap_up
+        // Connects Driver and Monitor in the Scoreboard and Coverage
+        foreach(ag[i]) begin
+            ag[i].drv.toCov.connect(cov.analysis_export);
+            ag[i].drv.toScbrd.connect(scbrd.fromDrv);
+            ag[i].mon.toScbrd.connect(scbrd.fromMon[i]);
+        end
+	endfunction: connect_phase
 
 endclass : Environment
+
+
 `endif

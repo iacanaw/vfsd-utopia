@@ -1,67 +1,43 @@
-/**********************************************************************
- * Functional coverage code
- *
- * Author: Chris Spear
- * Revision: 1.01
- * Last modified: 8/2/2011
- *
- * (c) Copyright 2008-2011, Chris Spear, Greg Tumbush. *** ALL RIGHTS RESERVED ***
- * http://chris.spear.net
- *
- *  This source file may be used and distributed without restriction
- *  provided that this copyright statement is not removed from the file
- *  and that any derivative work contains this copyright notice.
- *
- * Used with permission in the book, "SystemVerilog for Verification"
- * By Chris Spear and Greg Tumbush
- * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
- *********************************************************************/
-
 `ifndef COVERAGE__SV
 `define COVERAGE__SV
+
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
-`include "../src/uvm_tb/definitions.sv"
+`include "../src/uvm_tb/atm_cell.sv"
 
-class Coverage extends uvm_subscriber#(BaseTr);
-  `uvm_component_utils(Coverage)
+class Coverage extends uvm_subscriber #(CoverageInfo);
+	`uvm_component_utils(Coverage);
 
-  BaseTr utopia_tx;
+	bit [1:0] src;
+    bit [NumTx-1:0] fwd;
 
-  bit [1:0] src;
-  bit [NumTx-1:0] fwd;
+	covergroup CG_Forward;
 
-  covergroup CG_Forward;
+	coverpoint src
+		{bins src[] = {[0:3]};
+	 	option.weight = 0;}
+  	coverpoint fwd
+		{bins fwd[] = {[1:15]}; // Ignore fwd==0
+	 	option.weight = 0;}
+  	
+  	cross src, fwd;
+   endgroup : CG_Forward
 
-  coverpoint src 
-  { bins src[] = {[0:3]};
-    option.weight = 0;}
 
-  coverpoint fwd 
-  { bins fwd[] = {[1:15]};
-    option.weight = 0;} 
+	function new(string name, uvm_component parent);
+		super.new(name, parent);
+		CG_Forward = new();
+	endfunction : new
 
-  cross src, fwd;
+	function void write(CoverageInfo t);
+		$display("@%0t: Coverage: src=%d. FWD=%b", $time, src, fwd);
+		this.src = t.src;
+		this.fwd = t.fwd;
+		CG_Forward.sample();
+	endfunction: write
 
-  endgroup : CG_Forward
-
-  // Instantiate the covergroup
-  function new(string name, uvm_component parent);
-    super.new(name, parent);
-    CG_Forward = new;
-  endfunction : new
-
-  // Sample input data
-  function void sample(input bit [1:0] src,
-                       input bit [NumTx-1:0] fwd);
-    $display("@%0t: Coverage: src=%d. FWD=%b", $time, src, fwd);
-    this.src = src;
-    this.fwd = fwd;
-    CG_Forward.sample();
-  endfunction : sample
 
 endclass : Coverage
 
-
-`endif // COVERAGE__SV
+`endif

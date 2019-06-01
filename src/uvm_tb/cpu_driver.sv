@@ -1,21 +1,5 @@
-/**********************************************************************
- * Definition of the CPU driver class
- *
- * Author: Chris Spear
- * Revision: 1.01
- * Last modified: 8/2/2011
- *
- * (c) Copyright 2008-2011, Chris Spear, Greg Tumbush. *** ALL RIGHTS RESERVED ***
- * http://chris.spear.net
- *
- *  This source file may be used and distributed without restriction
- *  provided that this copyright statement is not removed from the file
- *  and that any derivative work contains this copyright notice.
- *
- * Used with permission in the book, "SystemVerilog for Verification"
- * By Chris Spear and Greg Tumbush
- * Book copyright: 2008-2011, Springer LLC, USA, Springer.com
- *********************************************************************/
+`ifndef CPUDRVR__UVM
+`define CPUDRVR__UVM
 
 import uvm_pkg::*;
 `include "uvm_macros.svh"
@@ -77,26 +61,26 @@ endtask : HostRead
 
 task CPU_driver::run();
    CellCfgType CellFwd;
+
    Initialize_Host();
 
    // Configure through Host interface
-   repeat (10) 
 
-   #100;
-   $write("Memory: Loading ... ");
+
+   `uvm_info("cpu_driver","Memory: Loading ... ",UVM_HIGH);
    for (int i=0; i<=255; i++) begin
       CellFwd.FWD = $urandom();
 `ifdef FWDALL
       CellFwd.FWD = '1
 `endif
-      $display("CellFwd.FWD[%0d]=%0d", i, CellFwd.FWD);
+   //`uvm_info("cpu_driver",$sformatf("CellFwd.FWD[%0d]=%0d", i, CellFwd.FWD),UVM_LOW);
       CellFwd.VPI = i;
       HostWrite(i, CellFwd);
       lookup[i] = CellFwd;
    end
 
    // Verify memory
-   $write("Verifying ...");
+`uvm_info("cpu_driver","Veryfing ... ",UVM_HIGH);
    for (int i=0; i<=255; i++) begin
       HostRead(i, CellFwd);
       if (lookup[i] != CellFwd) begin
@@ -105,6 +89,9 @@ task CPU_driver::run();
          $finish;
       end
    end
-   $display("Verified");
+   `uvm_info("cpu_driver","Verified",UVM_HIGH);
+
 
 endtask : run
+
+`endif

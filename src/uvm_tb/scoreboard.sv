@@ -1,149 +1,193 @@
-`include "../src/uvm_tb/config.sv"
-`include "../src/uvm_tb/atm_cell.sv"
+`ifndef SCOREBOARD__SV
+`define SCOREBOARD__SV
+
 
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
-class Expect_cells;
-   NNI_cell q[$];
-   int iexpect, iactual;
-endclass : Expect_cells
-
-typedef class Scoreboard;
-
-class Sb_subscriber extends uvm_subscriber#(BaseTr);
-   `uvm_component_utils(Sb_subscriber)
-
-   function new(string name, uvm_component parent);
-      super.new(name, parent);
-   endfunction: new
-
-   function void write(BaseTr t, int portN);
-      Scoreboard sb;
-
-      $cast(sb, m_parent);
-      sb.check_actual(t, portN);
-   endfunction: write
-
-endclass: Sb_subscriber
+`include "../src/uvm_tb/atm_cell.sv"
 
 class Scoreboard extends uvm_scoreboard;
-   `uvm_component_utils(Scoreboard)
+	`uvm_component_utils(Scoreboard)
 
-   uvm_analysis_export#(BaseTr) sc_analysis_export;
-   local 
+	// UNI Cells comming from Drivers - every driver writes in this port
+	uvm_analysis_port#(UNI_cell) fromDrv;
+	uvm_tlm_analysis_fifo#(UNI_cell) incomming_UNIcell_FIFO;
 
-   Config cfg;
-   Expect_cells expect_cells[];
-   NNI_cell cellq[$];
-   int iexpect, iactual;
+	// NNI Cells comming from Monitors - each monitor has a separeted channel 
+	uvm_analysis_port#(NNI_cell) fromMon[`TxPorts];
+	uvm_tlm_analysis_fifo#(NNI_cell) incomming_NNIcell_FIFO[`TxPorts];
 
-   //---------------------------------------------------------------------------
-   function new(string name, uvm_component parent);
-      super.new(name,parent);
-   endfunction : new// Scoreboard
+	// iexpect increases as UNI packages is generated
+	// ifound increases as NNI packages  
+	// iactual increases as NNI packages is captured and was registered into expect_cells.q[]
+	// iactual increases as NNI packages is captured and was NOT registered into expect_cells.q[]
+	int iexpect, ifound, nErrors;
+ 	NNI_cell error_cells[$];
 
-
-   //---------------------------------------------------------------------------
-   function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      sc_analysis_export = new(.name("sc_analysis_export"), .parent(this));
-   endfunction: build_phase
+ 	// Queue where the input UNIcells are temporally stored until they leave at some output port and be checked by the sb
+ 	UNI_cell UNICell_FIFO[`RxPorts][$];
 
 
-   //---------------------------------------------------------------------------
-   function initialize(Config cfg);
-      this.cfg = cfg;
-      expect_cells = new[cfg.numTx];
-      foreach (expect_cells[i])
-         expect_cells[i] = new();
-   endfunction: initialize
+
+    //------------------
+    //	Constructor
+    //------------------
+ 	function new (string name, uvm_component parent);
+		super.new(name, parent);
+	endfunction : new
 
 
-   //---------------------------------------------------------------------------
-   function connect_phase(uvm_phase phase);
-      super.connect_phase(phase);
-   endfunction: connect_phase
+    //------------------
+    //	Build phase
+    //------------------
+	function void build_phase(uvm_phase phase);
+		super.build_phase(phase);
+
+		// Start the number of errors
+		nErrors=0;
+		iexpect=0;
+		ifound=0;
+
+		// Creates the port used to receive UNIcells from drivers
+		fromDrv = new("fromDrv", this);
+		uvm_config_db#(uvm_analysis_port#(UNI_cell))::set(this, "", "fromDrv", fromDrv);
+
+		// Creates the FIFO used to store each UNIcells recieved from drivers
+		incomming_UNIcell_FIFO  = new("incomming_UNIcell_FIFO", this); 
+
+		foreach (fromMon[i])
+		begin
+			// Creates each port used to receive NNIcells from monitors
+			fromMon[i] = new($sformatf("fromMon_%0d",i), this); 
+			uvm_config_db#(uvm_analysis_port#(NNI_cell))::set(this, "", $sformatf("fromMon_%0d",i), fromMon[i]);
+
+			// Creates each FIFO used to store NNIcells recieved from monitors
+			incomming_NNIcell_FIFO[i] = new( $sformatf("incomming_NNIcell_FIFO_%0d",i), this);
+		end
 
 
-   //---------------------------------------------------------------------------
-   function void save_expected(UNI_cell ucell);
-      NNI_cell ncell = ucell.to_NNI;
-      CellCfgType CellCfg = top.squat.lut.read(ncell.VPI);
 
-      $display("@%0t: Scb save: VPI=%0x, Forward=%b", $time, ncell.VPI, CellCfg.FWD);
-
-      ncell.display($sformatf("@%0t: Scb save: ", $time));
-
-      // Find all Tx ports where this cell will be forwarded
-      for (int i=0; i<cfg.numTx; i++)
-         if (CellCfg.FWD[i]) begin
-            expect_cells[i].q.push_back(ncell); // Save cell in this forward queue
-            expect_cells[i].iexpect++;
-            iexpect++;
-         end
-   endfunction : save_expected
+	endfunction : build_phase
 
 
-   //-----------------------------------------------------------------------------
-   function void check_actual(input NNI_cell c,
-   				               input int portn);
-      NNI_cell match;
-      int match_idx;
+    //------------------
+    //	Build phase
+    //------------------
+	function void connect_phase(uvm_phase phase);
+		super.connect_phase(phase);
 
-      c.display($sformatf("@%0t: Scb check: ", $time));
+		//Connects the input UNI_Cells port to the FIFO
+		fromDrv.connect(incomming_UNIcell_FIFO.analysis_export);
 
-      if (expect_cells[portn].q.size() == 0) begin
-         $display("@%0t: ERROR: %m cell not found because scoreboard for TX%0d empty", $time, portn);
-         c.display("Not Found: ");
-         cfg.nErrors++;
-         return;
-      end
+		// Connects each input NNI_Cells ports to each FIFO
+		foreach (fromMon[i]) fromMon[i].connect(incomming_NNIcell_FIFO[i].analysis_export);
 
-      expect_cells[portn].iactual++;
-      iactual++;
-
-      foreach (expect_cells[portn].q[i]) begin
-         if (expect_cells[portn].q[i].compare(c)) begin
-            $display("@%0t: Match found for cell", $time);
-            expect_cells[portn].q.delete(i);
-            return;
-         end
-      end
-
-      $display("@%0t: ERROR: %m cell not found", $time);
-      c.display("Not Found: ");
-      cfg.nErrors++;
-   endfunction : check_actual
+	endfunction: connect_phase
 
 
-   //---------------------------------------------------------------------------
-   // Print end of simulation report
-   //---------------------------------------------------------------------------
-   function void wrap_up();
-      $display("@%0t: %m %0d expected cells, %0d actual cells received", $time, iexpect, iactual);
-
-      // Look for leftover cells
-      foreach (expect_cells[i]) begin
-         if (expect_cells[i].q.size()) begin
-   	 $display("@%0t: %m cells remaining in Tx[%0d] scoreboard at end of test", $time, i);
-   	 this.display("Unclaimed: ");
-   	 cfg.nErrors++;
-         end
-      end
-   endfunction : wrap_up
+    //------------------
+    //	Run task (main)
+    //------------------
+	task run_phase(uvm_phase phase);
+	  	fork
+			save_expected(phase);
+			verify(phase);
+		join
+	endtask: run_phase
 
 
-   //---------------------------------------------------------------------------
-   // Print the contents of the scoreboard, mainly for debugging
-   //---------------------------------------------------------------------------
-   function void display(string prefix = "");
-      $display("@%0t: %m so far %0d expected cells, %0d actual cells received", $time, iexpect, iactual);
-      foreach (expect_cells[i]) begin
-         $display("Tx[%0d]: exp=%0d, act=%0d", i, expect_cells[i].iexpect, expect_cells[i].iactual);
-         foreach (expect_cells[i].q[j])
-   	expect_cells[i].q[j].display($sformatf("%sScoreboard: Tx%0d: ", prefix, i));
-      end
-   endfunction : display
+    //------------------
+    //	Store input UNI_cells
+    //------------------
+    task save_expected(uvm_phase phase);
+    	UNI_cell sample;
+    	NNI_cell sample_nni;
+    	CellCfgType CellCfg;
+
+    	forever begin
+    		phase.raise_objection(this);
+    		// Reads a sample from the UNI_cell FIFO
+		    incomming_UNIcell_FIFO.get(sample);
+			`uvm_info(">> Scoreboard", $sformatf("INPUT PACKET RECEIVED !"), UVM_HIGH);
+		    // Converts it to NNI_cell
+		    sample_nni = sample.to_NNI();
+
+		    // gets the CellCfgType
+			//CellCfg = CellCfgType::type_id::create("CellCfg");
+		    CellCfg = top.squat.lut.read(sample_nni.VPI);
+
+	   		for (int i=0; i<`RxPorts; i++) begin
+	   			if(CellCfg.FWD[i]) begin
+	   				//phase.raise_objection(this);
+   				 	UNICell_FIFO[i].push_back(sample);
+	 		   		iexpect++;
+	   			end
+	   		end
+			phase.drop_objection(this);
+   		end
+   	endtask
+
+
+    //------------------
+    //	Check for every NNI_cell in the correspondent input UNI_cell fifo
+    //------------------
+   	task verify(uvm_phase phase);
+   		NNI_cell toCheck;
+   		NNI_cell aux;
+   		forever begin
+   			// Reads a NNI cell from NNI_cells FIFO 
+   			//toCheck = NNI_cell::type_id::create("check");
+   			foreach(incomming_NNIcell_FIFO[i]) begin
+   				fork begin : parallel
+   					bit found;
+
+   					phase.raise_objection(this);
+		   			incomming_NNIcell_FIFO[i].get(toCheck);
+		   			//`uvm_info(">>>>>Scoreboard", "OUTPUT PACKET RECEIVED !!!!", UVM_HIGH);
+
+		   			// Verify if the expected source queue is empty
+		   			/*if (UNICell_FIFO[i].size() == 0) begin
+		   				error_cells.push_back(toCheck);
+						nErrors++;
+				    end*/
+				    found = 0;
+				    foreach (UNICell_FIFO[i,j]) begin
+				    	if(toCheck.compare(UNICell_FIFO[i][j].to_NNI()))begin
+						//if (UNICell_FIFO[idx][i].compare_NNI(toCheck)) begin
+							UNICell_FIFO[i].delete(j);
+							ifound++;
+							found = 1;
+							`uvm_info(">>>>>Scoreboard", "OUTPUT PACKET FOUND !!!!", UVM_HIGH);
+							//return;
+						end
+					end
+					if (found == 0) begin
+						error_cells.push_back(toCheck);
+						nErrors++;
+						`uvm_info(">>>>>>>>>>>>>>>>>>>>>>>>>>Scoreboard", "OUTPUT PACKET NOT FOUND !!!!", UVM_HIGH);
+						phase.drop_objection(this);
+						//continue;
+						//return;
+					end
+					else 
+						phase.drop_objection(this);
+					//continue;
+				end : parallel
+				join
+			end
+		end
+   	endtask
+
+
+    //------------------
+    //	Report the Scoreboard analysis results
+    //------------------
+   	function void extract_phase(uvm_phase phase);
+		super.extract_phase(phase);
+		`uvm_info("Scoreboard extract_phase",$sformatf("@%0t: %m %0d expected cells, %0d actual cells received and checked", $time, iexpect, ifound),UVM_HIGH);
+		`uvm_info("Scoreboard extract_phase",$sformatf("@%0t: %m number of errors: %d", $time, nErrors),UVM_HIGH);
+	endfunction : extract_phase
 
 endclass : Scoreboard
+`endif;

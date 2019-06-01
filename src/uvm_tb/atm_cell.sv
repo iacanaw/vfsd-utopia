@@ -1,33 +1,43 @@
-`ifndef ATM_CELL__SV
-`define ATM_CELL__SV
+`ifndef ATM_CELL__UVM
+`define ATM_CELL__UVM
 
 import uvm_pkg::*;
 `include "uvm_macros.svh"
 
 `include "../src/uvm_tb/definitions.sv"
 
-virtual class BaseTr extends uvm_sequence_item;
-
-   static int count;  // Number of instance created
-   int id;            // Unique transaction id
+class CoverageInfo extends uvm_sequence_item;
+   `uvm_object_utils(CoverageInfo)
+   bit [`TxPorts-1:0] fwd;
+   bit [1:0] src;
 
    function new(string name = "");
       super.new(name);
-      id = count++;
-   endfunction
+   endfunction: new
 
-  // "pure" methods supported in VCS 2008.03 and later
-   pure virtual function bit compare(input uvm_object to);
-   pure virtual function BaseTr copy(input uvm_object to=null);
-   pure virtual function void display(input string prefix="");
-endclass : BaseTr// BaseTr
+endclass;
+
+
+/*virtual class BaseTr extends ;
+`uvm_object_utils(BaseTr)
+
+  static int count;  // Number of instance created
+  int id;            // Unique transaction id
+
+  function new(string name = "");
+   super.new(name);
+    id = count++;
+  endfunction
+
+endclass // BaseTr*/
 
 typedef class NNI_cell;
+
 
 /////////////////////////////////////////////////////////////////////////////
 // UNI Cell Format
 /////////////////////////////////////////////////////////////////////////////
-class UNI_cell extends BaseTr;
+class UNI_cell extends uvm_sequence_item;
    // Physical fields
    rand bit        [3:0]  GFC;
    rand bit        [7:0]  VPI;
@@ -37,75 +47,64 @@ class UNI_cell extends BaseTr;
         bit        [7:0]  HEC;
    rand bit [0:47] [7:0]  Payload;
 
+   //static int count;  // Number of instance created
+   //int id;            // Unique transaction id
+
    // Meta-data fields
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
 
-   extern function new(string name = "");
-   extern function void post_randomize();
-   extern virtual function bit compare(input uvm_object to);
-   extern virtual function void display(input string prefix="");
-   extern virtual function void do_record(uvm_recorder recorder);
-   //extern virtual function void copy_data(input UNI_cell copy);
-   extern virtual function BaseTr copy(input uvm_object to=null);
-   extern virtual function void pack(output ATMCellType to);
-   extern virtual function void unpack(input ATMCellType from);
-   extern function NNI_cell to_NNI();
-   extern function void generate_syndrome();
-   extern function bit [7:0] hec (bit [31:0] hdr);
-endclass : UNI_cell
+   `uvm_object_utils_begin(UNI_cell)
+         `uvm_field_int(GFC,UVM_ALL_ON)
+         `uvm_field_int(VPI,UVM_ALL_ON)
+         `uvm_field_int(VCI,UVM_ALL_ON)
+         `uvm_field_int(CLP,UVM_ALL_ON)
+         `uvm_field_int(PT,UVM_ALL_ON)
+         `uvm_field_int(HEC,UVM_ALL_ON)
+         `uvm_field_int(Payload,UVM_ALL_ON) 
+   `uvm_object_utils_end
 
 
 //-----------------------------------------------------------------------------
-function UNI_cell::new(string name = "");
+function new(string name = "");
    super.new(name);
    if (syndrome_not_generated)
-     generate_syndrome();
+      generate_syndrome();
+   //id = count++;
 endfunction : new
 
 
 //-----------------------------------------------------------------------------
-function void UNI_cell::do_record(uvm_recorder recorder);
-  super.do_record(recorder);
-  `uvm_record_attribute(recorder.tr_handle, "GFC",GFC)
-  `uvm_record_attribute(recorder.tr_handle, "VPI",VPI)
-  `uvm_record_attribute(recorder.tr_handle, "VCI",VCI)
-  `uvm_record_attribute(recorder.tr_handle, "CLP",CLP)
-  `uvm_record_attribute(recorder.tr_handle, "PT",PT)
-  `uvm_record_attribute(recorder.tr_handle, "HEC",HEC)
-  `uvm_record_attribute(recorder.tr_handle, "Paylaod",Payload)
-endfunction : do_record
-
-
-//-----------------------------------------------------------------------------
 // Compute the HEC value after all other data has been chosen
-function void UNI_cell::post_randomize();
+function void post_randomize();
    HEC = hec({GFC, VPI, VCI, CLP, PT});
 endfunction : post_randomize
 
 
 
 //-----------------------------------------------------------------------------
-function bit UNI_cell::compare(input uvm_object to);
+
+function bit compare(input UNI_cell to);
    UNI_cell other;
    $cast(other, to);
-
-   if ( ! $cast(other, to) ) return 0;
-   return ( this.GFC == other.GFC &&
-            this.VPI == other.VPI &&
-            this.VCI == other.VCI &&
-            this.CLP == other.CLP &&
-            this.PT  == other.PT  &&
-            this.HEC == other.HEC && 
-            this.Payload == other.Payload);
+   if (this.GFC != other.GFC)         return 0;
+   if (this.VPI != other.VPI)         return 0;
+   if (this.VCI != other.VCI)         return 0;
+   if (this.CLP != other.CLP)         return 0;
+   if (this.PT  != other.PT)          return 0;
+   if (this.HEC != other.HEC)         return 0;
+   if (this.Payload != other.Payload) return 0;
+   return 1;
 endfunction : compare
 
 
-function void UNI_cell::display(input string prefix = "");
+function void display(input string prefix);
    ATMCellType p;
 
-   $display("%sUNI id:%0d GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
-	    prefix, id, GFC, VPI, VCI, CLP, PT, HEC, Payload[0]);
+   //$display("%sUNI id:%0d GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
+	//    prefix, id, GFC, VPI, VCI, CLP, PT, HEC, Payload[0]);
+   $display("%sUNI GFC=%x, VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
+       prefix, GFC, VPI, VCI, CLP, PT, HEC, Payload[0]);
    this.pack(p);
    $write("%s", prefix);
    foreach (p.Mem[i]) $write("%x ", p.Mem[i]); $display;
@@ -115,8 +114,8 @@ function void UNI_cell::display(input string prefix = "");
    $display;
 endfunction : display
 
-/*
-function void UNI_cell::copy_data(input UNI_cell copy);
+
+function void copy_data(input UNI_cell copy);
    copy.GFC     = this.GFC;
    copy.VPI     = this.VPI;
    copy.VCI     = this.VCI;
@@ -125,29 +124,18 @@ function void UNI_cell::copy_data(input UNI_cell copy);
    copy.HEC     = this.HEC;
    copy.Payload = this.Payload;
 endfunction : copy_data
-*/
 
-function BaseTr UNI_cell::copy(input uvm_object to=null);
+
+function UNI_cell copy(input UNI_cell to);
    UNI_cell dst;
    if (to == null) dst = new();
-   if ( ! $cast( dst, to ) ) begin
-     `uvm_error( get_name(), "'to' is not a UNI_cell" )
-     return null;
-   end
-
-   super.do_copy( to );
-   dst.GFC     = this.GFC;
-   dst.VPI     = this.VPI;
-   dst.VCI     = this.VCI;
-   dst.CLP     = this.CLP;
-   dst.PT      = this.PT;
-   dst.HEC     = this.HEC;
-   dst.Payload = this.Payload;
+   else            $cast(dst, to);
+   copy_data(dst);
    return dst;
 endfunction : copy
 
 
-function void UNI_cell::pack(output ATMCellType to);
+function void pack(output ATMCellType to);
    to.uni.GFC     = this.GFC;
    to.uni.VPI     = this.VPI;
    to.uni.VCI     = this.VCI;
@@ -159,7 +147,7 @@ function void UNI_cell::pack(output ATMCellType to);
 endfunction : pack
 
 
-function void UNI_cell::unpack(input ATMCellType from);
+function void unpack(input ATMCellType from);
    this.GFC     = from.uni.GFC;
    this.VPI     = from.uni.VPI;
    this.VCI     = from.uni.VCI;
@@ -172,7 +160,7 @@ endfunction : unpack
 
 //---------------------------------------------------------------------------
 // Generate a NNI cell from an UNI cell - used in scoreboard
-function NNI_cell UNI_cell::to_NNI();
+function NNI_cell to_NNI();
    NNI_cell copy;
    copy = new();
    copy.VPI     = this.VPI;   // NNI has wider VPI
@@ -187,7 +175,7 @@ endfunction : to_NNI
 
 //---------------------------------------------------------------------------
 // Generate the syndome array, used to compute HEC
-function void UNI_cell::generate_syndrome();
+function void generate_syndrome();
    bit [7:0] sndrm;
    for (int i = 0; i < 256; i = i + 1 ) begin
       sndrm = i;
@@ -204,7 +192,7 @@ endfunction : generate_syndrome
 
 //---------------------------------------------------------------------------
 // Function to compute the HEC value
-function bit [7:0] UNI_cell::hec (bit [31:0] hdr);
+function bit [7:0] hec (bit [31:0] hdr);
    hec = 8'h00;
    repeat (4) begin
       hec = syndrome[hec ^ hdr[31:24]];
@@ -212,6 +200,15 @@ function bit [7:0] UNI_cell::hec (bit [31:0] hdr);
    end
    hec = hec ^ 8'h55;
 endfunction : hec
+
+endclass : UNI_cell
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// UNI Cell Sequencer
+/////////////////////////////////////////////////////////////////////////////
+//typedef uvm_sequencer #(UNI_cell) UNI_cell_Sequencer;
 
 
 
@@ -219,155 +216,129 @@ endfunction : hec
 /////////////////////////////////////////////////////////////////////////////
 // NNI Cell Format
 /////////////////////////////////////////////////////////////////////////////
-class NNI_cell extends BaseTr;
+class NNI_cell extends uvm_sequence_item;
    // Physical fields
    rand bit        [11:0] VPI;
    rand bit        [15:0] VCI;
    rand bit               CLP;
    rand bit        [2:0]  PT;
-        bit        [7:0]  HEC;
+   bit        [7:0]  HEC;
    rand bit [0:47] [7:0]  Payload;
+
+   static int count;  // Number of instance created
+   int id;            // Unique transaction id
 
    // Meta-data fields
    static bit [7:0] syndrome[0:255];
    static bit syndrome_not_generated = 1;
 
-   extern function new(string name = "");
-   extern function void post_randomize();
-   extern virtual function bit compare(input uvm_object to);
-   extern virtual function void display(input string prefix="");
-   //extern virtual function void copy_data(input NNI_cell copy);
-   extern virtual function void do_record(uvm_recorder recorder);
-   extern virtual function BaseTr copy(input uvm_object to=null);
-   extern virtual function void pack(output ATMCellType to);
-   extern virtual function void unpack(input ATMCellType from);
-   extern function void generate_syndrome();
-   extern function bit [7:0] hec (bit [31:0] hdr);
-endclass : NNI_cell
+
+   function new(string name = "");
+      super.new(name);
+      if (syndrome_not_generated)
+        generate_syndrome();
+      id = count++;
+   endfunction : new
 
 
-function NNI_cell::new(string name = "");
-   super.new(name);
-   if (syndrome_not_generated)
-     generate_syndrome();
-endfunction : new
-
-function void NNI_cell::do_record(uvm_recorder recorder);
-  super.do_record(recorder);
-
-  `uvm_record_attribute(recorder.tr_handle, "VPI",VPI)
-  `uvm_record_attribute(recorder.tr_handle, "VCI",VCI)
-  `uvm_record_attribute(recorder.tr_handle, "CLP",CLP)
-  `uvm_record_attribute(recorder.tr_handle, "PT",PT)
-  `uvm_record_attribute(recorder.tr_handle, "HEC",HEC)
-  `uvm_record_attribute(recorder.tr_handle, "Paylaod",Payload)
-endfunction : do_record
-
-//-----------------------------------------------------------------------------
-// Compute the HEC value after all other data has been chosen
-function void NNI_cell::post_randomize();
-   HEC = hec({VPI, VCI, CLP, PT});
-endfunction : post_randomize
+   //-----------------------------------------------------------------------------
+   // Compute the HEC value after all other data has been chosen
+   function void post_randomize();
+      HEC = hec({VPI, VCI, CLP, PT});
+   endfunction : post_randomize
 
 
-function bit NNI_cell::compare(input uvm_object to);
-   NNI_cell other;
-   if ( ! $cast(other, to) ) return 0;
+   function bit compare(input NNI_cell to);
+      NNI_cell other;
+      $cast(other, to);
+      if (this.VPI != other.VPI)         return 0;
+      if (this.VCI != other.VCI)         return 0;
+      if (this.CLP != other.CLP)         return 0;
+      if (this.PT  != other.PT)          return 0;
+      if (this.HEC != other.HEC)         return 0;
+      if (this.Payload != other.Payload) return 0;
+      return 1;
+   endfunction : compare
 
-   return ( this.VPI == other.VPI &&
-            this.VCI == other.VCI &&
-            this.CLP == other.CLP &&
-            this.PT  == other.PT  &&
-            this.HEC == other.HEC && 
-            this.Payload == other.Payload);
-endfunction : compare
 
+   function void display(input string prefix);
+      ATMCellType p;
 
-function void NNI_cell::display(input string prefix = "");
-   ATMCellType p;
+      $display("%sNNI id:%0d VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
+   	    prefix, id, VPI, VCI, CLP, PT, HEC, Payload[0]);
+      this.pack(p);
+      $write("%s", prefix);
+      foreach (p.Mem[i]) $write("%x ", p.Mem[i]); $display;
+      //$write("%sUNI Payload=%x %x %x %x %x %x ...",
+      $display;
+   endfunction : display
 
-   $display("%sNNI id:%0d VPI=%x, VCI=%x, CLP=%b, PT=%x, HEC=%x, Payload[0]=%x",
-	    prefix, id, VPI, VCI, CLP, PT, HEC, Payload[0]);
-   this.pack(p);
-   $write("%s", prefix);
-   foreach (p.Mem[i]) $write("%x ", p.Mem[i]); $display;
-   //$write("%sUNI Payload=%x %x %x %x %x %x ...",
-   $display;
-endfunction : display
+   function void copy_data(input NNI_cell copy);
+      copy.VPI     = this.VPI;
+      copy.VCI     = this.VCI;
+      copy.CLP     = this.CLP;
+      copy.PT      = this.PT;
+      copy.HEC     = this.HEC;
+      copy.Payload = this.Payload;
+   endfunction : copy_data
 
-/*
-function void NNI_cell::copy_data(input NNI_cell copy);
-   copy.VPI     = this.VPI;
-   copy.VCI     = this.VCI;
-   copy.CLP     = this.CLP;
-   copy.PT      = this.PT;
-   copy.HEC     = this.HEC;
-   copy.Payload = this.Payload;
-endfunction : copy_data
-*/
+   function NNI_cell copy(input NNI_cell to);
+      NNI_cell dst;
+      if (to == null) dst = new();
+      else            $cast(dst, to);
+      copy_data(dst);
+      return dst;
+   endfunction : copy
 
-function BaseTr NNI_cell::copy(input uvm_object to = null);
-   NNI_cell dst;
-   if (to == null) dst = new();
-   if ( ! $cast( dst, to ) ) begin
-     `uvm_error( get_name(), "'to' is not a NNI_cell" )
-     return null;
-   end
+   function void pack(output ATMCellType to);
+      to.nni.VPI     = this.VPI;
+      to.nni.VCI     = this.VCI;
+      to.nni.CLP     = this.CLP;
+      to.nni.PT      = this.PT;
+      to.nni.HEC     = this.HEC;
+      to.nni.Payload = this.Payload;
+   endfunction : pack
 
-   super.do_copy( to );
-   dst.VPI     = this.VPI;
-   dst.VCI     = this.VCI;
-   dst.CLP     = this.CLP;
-   dst.PT      = this.PT;
-   dst.HEC     = this.HEC;
-   dst.Payload = this.Payload;
-   return dst;
-endfunction : copy
+   function void unpack(input ATMCellType from);
+      this.VPI     = from.nni.VPI;
+      this.VCI     = from.nni.VCI;
+      this.CLP     = from.nni.CLP;
+      this.PT      = from.nni.PT;
+      this.HEC     = from.nni.HEC;
+      this.Payload = from.nni.Payload;
+   endfunction : unpack
 
-function void NNI_cell::pack(output ATMCellType to);
-   to.nni.VPI     = this.VPI;
-   to.nni.VCI     = this.VCI;
-   to.nni.CLP     = this.CLP;
-   to.nni.PT      = this.PT;
-   to.nni.HEC     = this.HEC;
-   to.nni.Payload = this.Payload;
-endfunction : pack
-
-function void NNI_cell::unpack(input ATMCellType from);
-   this.VPI     = from.nni.VPI;
-   this.VCI     = from.nni.VCI;
-   this.CLP     = from.nni.CLP;
-   this.PT      = from.nni.PT;
-   this.HEC     = from.nni.HEC;
-   this.Payload = from.nni.Payload;
-endfunction : unpack
-
-//---------------------------------------------------------------------------
-// Generate the syndome array, used to compute HEC
-function void NNI_cell::generate_syndrome();
-   bit [7:0] sndrm;
-   for (int i = 0; i < 256; i = i + 1 ) begin
-      sndrm = i;
-      repeat (8) begin
-         if (sndrm[7] === 1'b1)
-           sndrm = (sndrm << 1) ^ 8'h07;
-         else
-           sndrm = sndrm << 1;
+   //---------------------------------------------------------------------------
+   // Generate the syndome array, used to compute HEC
+   function void generate_syndrome();
+      bit [7:0] sndrm;
+      for (int i = 0; i < 256; i = i + 1 ) begin
+         sndrm = i;
+         repeat (8) begin
+            if (sndrm[7] === 1'b1)
+              sndrm = (sndrm << 1) ^ 8'h07;
+            else
+              sndrm = sndrm << 1;
+         end
+         syndrome[i] = sndrm;
       end
-      syndrome[i] = sndrm;
-   end
-   syndrome_not_generated = 0;
-endfunction : generate_syndrome
+      syndrome_not_generated = 0;
+   endfunction : generate_syndrome
 
-//---------------------------------------------------------------------------
-// Function to compute the HEC value
-function bit [7:0] NNI_cell::hec (bit [31:0] hdr);
-   hec = 8'h00;
-   repeat (4) begin
-      hec = syndrome[hec ^ hdr[31:24]];
-      hdr = hdr << 8;
-   end
-   hec = hec ^ 8'h55;
-endfunction : hec
+   //---------------------------------------------------------------------------
+   // Function to compute the HEC value
+   function bit [7:0] hec (bit [31:0] hdr);
+      hec = 8'h00;
+      repeat (4) begin
+         hec = syndrome[hec ^ hdr[31:24]];
+         hdr = hdr << 8;
+      end
+      hec = hec ^ 8'h55;
+   endfunction : hec
 
-`endif
+endclass : NNI_cell  
+
+
+
+
+`endif // ATM_CELL__SV

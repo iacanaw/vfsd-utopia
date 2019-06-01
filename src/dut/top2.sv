@@ -4,9 +4,9 @@ import uvm_pkg::*;
 
 `include "uvm_macros.svh"
 `include "../src/dut/squat.sv"
-`include "../src/uvm_tb2/test.sv"
-`include "../src/uvm_tb2/cpu_ifc.sv"
-`include "../src/uvm_tb2/utopia.sv"
+`include "../src/uvm_tb/test.sv"
+`include "../src/uvm_tb/cpu_ifc.sv"
+`include "../src/uvm_tb/utopia.sv"
 
 
 //`define SYNTHESIS	// conditional compilation flag for synthesis

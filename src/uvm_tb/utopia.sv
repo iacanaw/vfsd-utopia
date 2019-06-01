@@ -1,3 +1,6 @@
+`ifndef UTOPIA__UVM
+`define UTOPIA__UVM
+
 `include "../src/uvm_tb/definitions.sv"  // include external definitions
 
 interface Utopia;
@@ -40,3 +43,5 @@ interface Utopia;
   modport TB_Tx (clocking cbt);
 
 endinterface
+
+`endif
